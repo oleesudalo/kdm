@@ -1,233 +1,188 @@
 <!doctype html>
 <html lang="ko">
- <head>
+<head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>동명 열공 프로젝트</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
-    /* 트렌디한 디자인을 위한 커스텀 CSS */
-    :root { font-family: 'Pretendard', sans-serif; }
-    body { background-color: #f8fafc; color: #0f172a; -webkit-tap-highlight-color: transparent; }
-    
-    /* 스크롤바 숨기기 (모바일 앱처럼 깔끔하게) */
-    ::-webkit-scrollbar { display: none; }
-    
-    /* 애니메이션 및 특수 효과 */
-    .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.5); }
-    .glass-modal { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); }
-    
-    .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.4; z-index: 0; animation: float 10s infinite ease-in-out alternate; }
-    @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, 30px) scale(1.1); } }
-    
-    .text-gradient { background: linear-gradient(135deg, #4f46e5, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    
-    /* 하단 네비게이션 버튼 애니메이션 */
-    .nav-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    .nav-btn:active { transform: scale(0.92); }
-
-    /* 단계별 선택 버튼 */
-    .step-btn { background: #f1f5f9; border: 2px solid transparent; border-radius: 12px; padding: 14px 8px; font-weight: 700; font-size: 16px; color: #475569; transition: all 0.2s; }
-    .step-btn:hover { background: #e2e8f0; }
-    .step-btn.selected { border-color: #4f46e5; background: #e0e7ff; color: #4f46e5; }
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #1e293b; }
+    .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .modal-box { background: #fff; border-radius: 20px; padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+    .alert-box { background: #fff; border-radius: 16px; padding: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); }
+    .step-btn { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 8px; font-weight: 700; font-size: 16px; color: #475569; transition: all 0.2s; background: #fff; }
+    .step-btn:hover { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; transform: translateY(-1px); }
+    .gradient-text { background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
- </head>
- 
- <body class="w-full h-screen overflow-hidden flex justify-center bg-slate-100">
-  <!-- 모바일 앱 컨테이너 (데스크탑에서도 모바일 화면비 유지) -->
-  <div class="relative w-full max-w-md h-full bg-slate-50 flex flex-col shadow-2xl overflow-hidden">
-   
-   <!-- 감각적인 배경 Blobs -->
-   <div class="blob bg-indigo-300 w-72 h-72 top-[-10%] left-[-20%]"></div>
-   <div class="blob bg-pink-300 w-80 h-80 top-[20%] right-[-30%]" style="animation-delay: -2s;"></div>
-   <div class="blob bg-teal-200 w-64 h-64 bottom-[10%] left-[-10%]" style="animation-delay: -4s;"></div>
-   
-   <!-- 메인 스크롤 영역 -->
-   <div class="relative z-10 flex-1 w-full overflow-y-auto px-5 pt-12 pb-32">
-    
-    <!-- 전체화면 버튼 -->
-    <div class="absolute top-4 right-4 z-20">
-      <button class="rounded-full p-2.5 bg-white/80 backdrop-blur shadow-sm text-slate-500 hover:text-indigo-600 transition" onclick="toggleFullscreen()"> 
-        <i data-lucide="maximize" class="w-5 h-5"></i> 
-      </button>
-    </div>
-    
-    <header class="mb-8 mt-4">
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100/80 text-indigo-700 text-xs font-bold tracking-wide mb-3 shadow-sm border border-indigo-200/50">
-        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> STUDY PROJECT
-      </div>
-      <h1 class="font-black leading-tight text-5xl mb-3 tracking-tight text-gradient">동명 열공<br>프로젝트</h1>
-      <p class="text-slate-600 font-medium text-lg leading-snug">같이 공부하면 더 재밌어!<br>8일 완주 도전 🔥</p>
-    </header>
-    
-    <div class="space-y-4">
-      <!-- 일정 카드 -->
-      <section class="glass-card rounded-3xl p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="p-2.5 bg-blue-100 text-blue-600 rounded-xl"><i data-lucide="calendar-days" class="w-6 h-6"></i></div>
-          <h2 class="font-bold text-xl text-slate-800 tracking-tight">일정</h2>
-        </div>
-        <div>
-          <p class="font-bold text-slate-800 text-lg mb-1">9월 21일(월) ~ 10월 2일(금)</p>
-          <p class="text-slate-500 text-sm mb-3">8일간 진행 (주말 및 24, 25일 제외)</p>
-          <div class="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700 font-medium text-sm">
-            <i data-lucide="clock" class="w-4 h-4"></i> 매일 12:35 ~ 13:25 (50분)
+</head>
+<body class="w-full overflow-hidden" style="height: 100vh;">
+  <!-- 배경 장식 요소 -->
+  <div class="absolute top-[-50px] left-[-50px] w-48 h-48 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+  <div class="absolute top-[20%] right-[-50px] w-48 h-48 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+
+  <div class="relative w-full h-full flex flex-col z-10">
+    <div class="px-5 flex-1 flex flex-col items-center w-full overflow-y-auto" style="padding-top:50px; padding-bottom:120px;">
+      
+      <header class="mb-3 text-center">
+        <span class="inline-block px-4 py-1.5 rounded-full text-sm font-bold bg-blue-100 text-blue-600 mb-2">STUDY PROJECT</span>
+        <h1 class="font-extrabold leading-tight mb-2 tracking-tight text-4xl text-slate-800">동명 열공 프로젝트</h1>
+        <p class="text-slate-500 font-medium">9/21 ~ 10/2 ㆍ 8일 완주 도전</p>
+      </header>
+      
+      <section class="w-full mb-4">
+        <div class="glass-card rounded-2xl p-5 text-center">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <i data-lucide="calendar" class="text-blue-500 w-5 h-5"></i>
+            <h2 class="font-bold text-slate-700 text-lg">진행 일정</h2>
+          </div>
+          <p class="font-bold text-slate-800 text-lg">9월 21일 ~ 10월 2일 (8일간)</p>
+          <p class="text-slate-500 text-sm mt-1">※ 토, 일 및 24, 25일 제외</p>
+          <div class="mt-3 py-2 bg-slate-50 rounded-lg">
+            <p class="font-bold text-slate-700">매일 12:35 ~ 13:25</p>
           </div>
         </div>
       </section>
       
-      <!-- 장소 카드 -->
-      <section class="glass-card rounded-3xl p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl"><i data-lucide="map-pin" class="w-6 h-6"></i></div>
-          <h2 class="font-bold text-xl text-slate-800 tracking-tight">장소</h2>
-        </div>
+      <section class="w-full mb-4">
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-white/60 rounded-2xl p-4 text-center border border-white/50 shadow-sm">
-            <p class="text-3xl mb-2">🔤</p>
-            <p class="font-bold text-slate-700 text-sm">본관3층 영어2실</p>
+          <div class="glass-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
+              <i data-lucide="school" class="text-blue-600 w-5 h-5"></i>
+            </div>
+            <p class="font-bold text-slate-700">본관3층 영어2실</p>
           </div>
-          <div class="bg-white/60 rounded-2xl p-4 text-center border border-white/50 shadow-sm">
-            <p class="text-3xl mb-2">🎯</p>
-            <p class="font-bold text-slate-700 text-sm">진로활동실</p>
+          <div class="glass-card rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
+              <i data-lucide="lightbulb" class="text-purple-600 w-5 h-5"></i>
+            </div>
+            <p class="font-bold text-slate-700">진로활동실</p>
           </div>
         </div>
       </section>
       
-      <!-- 규칙 카드 -->
-      <section class="glass-card rounded-3xl p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="p-2.5 bg-rose-100 text-rose-600 rounded-xl"><i data-lucide="shield-alert" class="w-6 h-6"></i></div>
-          <h2 class="font-bold text-xl text-slate-800 tracking-tight">참가 규칙</h2>
-        </div>
-        <ul class="space-y-4">
-          <li class="flex gap-3 items-start">
-            <div class="mt-0.5 text-rose-500"><i data-lucide="ban" class="w-5 h-5"></i></div>
-            <div>
-              <p class="font-bold text-slate-800 text-[15px] mb-0.5">친구 자리 맞추기 금지</p>
-              <p class="text-slate-500 text-sm leading-snug">친구와 자리를 맞춰 앉는 행위 금지</p>
+      <section class="w-full mb-4">
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-4 justify-center">
+            <i data-lucide="alert-circle" class="text-slate-600 w-5 h-5"></i>
+            <h2 class="font-bold text-slate-700 text-lg">참가 규칙</h2>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5"><i data-lucide="users" class="text-rose-500 w-4 h-4"></i></div>
+              <div>
+                <p class="font-bold text-slate-700 text-sm">친구 자리 맞추기 금지</p>
+                <p class="text-slate-500 text-xs mt-0.5">미리 자리를 맞춰 앉을 수 없습니다.</p>
+              </div>
             </div>
-          </li>
-          <li class="flex gap-3 items-start">
-            <div class="mt-0.5 text-rose-500"><i data-lucide="user-x" class="w-5 h-5"></i></div>
-            <div>
-              <p class="font-bold text-slate-800 text-[15px] mb-0.5">자리 이탈 금지</p>
-              <p class="text-slate-500 text-sm leading-snug">공부 시간 중 자리 이탈 금지</p>
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5"><i data-lucide="footprints" class="text-rose-500 w-4 h-4"></i></div>
+              <div>
+                <p class="font-bold text-slate-700 text-sm">자리 이탈 금지</p>
+                <p class="text-slate-500 text-xs mt-0.5">공부 시간 중 임의로 이탈할 수 없습니다.</p>
+              </div>
             </div>
-          </li>
-        </ul>
-        <div class="mt-5 bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
-          <p class="font-bold text-rose-700 text-sm">⚠️ 규칙 위반 2회 누적 시 강퇴 조치</p>
+            <div class="mt-3 p-3 bg-rose-50 rounded-xl text-center">
+              <p class="text-rose-600 text-xs font-bold">⚠️ 규칙 위반 2회 누적 시 강퇴 조치</p>
+            </div>
+          </div>
         </div>
       </section>
       
-      <!-- 리워드 카드 -->
-      <section class="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 shadow-lg text-white mb-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
-        <p class="text-indigo-100 font-bold text-sm tracking-widest mb-1">SPECIAL REWARD</p>
-        <p class="font-black text-2xl mb-2">8일 개근 시 선물 증정 🎁</p>
-        <p class="text-indigo-100 text-sm leading-snug">하루도 빠짐없이 참석한 분께 드리는 특별 선물!</p>
+      <section class="w-full">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-center text-white shadow-lg shadow-blue-200">
+          <div class="flex justify-center mb-2"><i data-lucide="gift" class="w-8 h-8 text-yellow-300"></i></div>
+          <p class="font-bold text-blue-100 text-sm mb-1">SPECIAL REWARD</p>
+          <p class="font-extrabold text-2xl mb-1">8일 개근 시 선물 증정</p>
+          <p class="text-blue-100 text-sm">목표를 달성하고 선물을 받아가세요!</p>
+        </div>
       </section>
     </div>
-   </div>
    
-   <section class="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-sm glass-modal shadow-2xl rounded-3xl p-2 z-30 flex justify-between items-center">
-    
-    <button onclick="openStepModal('checkin')" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl text-emerald-600 hover:bg-emerald-50 relative group">
-      <div class="bg-emerald-100 p-2.5 rounded-full group-hover:scale-110 transition-transform"><i data-lucide="log-in" class="w-5 h-5"></i></div>
-      <span class="text-[11px] font-bold">입실</span>
-    </button> 
-    
-    <button onclick="openStepModal('checkout')" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl text-amber-600 hover:bg-amber-50 relative group">
-      <div class="bg-amber-100 p-2.5 rounded-full group-hover:scale-110 transition-transform"><i data-lucide="log-out" class="w-5 h-5"></i></div>
-      <span class="text-[11px] font-bold">퇴실</span>
-    </button> 
-    
-    <button onclick="openTimeModal()" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl text-blue-600 hover:bg-blue-50 relative group">
-      <div class="bg-blue-100 p-2.5 rounded-full group-hover:scale-110 transition-transform"><i data-lucide="clock" class="w-5 h-5"></i></div>
-      <span class="text-[11px] font-bold">누적시간</span>
-    </button> 
-    
-    <button onclick="openRankingModal()" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl text-purple-600 hover:bg-purple-50 relative group">
-      <div class="bg-purple-100 p-2.5 rounded-full group-hover:scale-110 transition-transform"><i data-lucide="trophy" class="w-5 h-5"></i></div>
-      <span class="text-[11px] font-bold">순위</span>
-    </button>
-   </section>
+    <!-- 하단 고정 액션 바 -->
+    <section class="fixed bottom-0 left-0 right-0 w-full p-4 bg-white/80 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 pb-safe">
+      <div class="grid grid-cols-4 gap-2 max-w-md mx-auto">
+        <button onclick="openStepModal('checkin')" class="flex flex-col items-center justify-center py-3 rounded-xl bg-blue-600 text-white font-bold transition active:scale-95 shadow-md shadow-blue-200">
+          <i data-lucide="log-in" class="w-5 h-5 mb-1"></i><span class="text-xs">입실</span>
+        </button> 
+        <button onclick="openStepModal('checkout')" class="flex flex-col items-center justify-center py-3 rounded-xl bg-slate-800 text-white font-bold transition active:scale-95 shadow-md shadow-slate-200">
+          <i data-lucide="log-out" class="w-5 h-5 mb-1"></i><span class="text-xs">퇴실</span>
+        </button> 
+        <button onclick="openTimeModal()" class="flex flex-col items-center justify-center py-3 rounded-xl bg-indigo-100 text-indigo-700 font-bold transition active:scale-95">
+          <i data-lucide="clock" class="w-5 h-5 mb-1"></i><span class="text-xs">누적시간</span>
+        </button> 
+        <button onclick="openRankingModal()" class="flex flex-col items-center justify-center py-3 rounded-xl bg-rose-100 text-rose-700 font-bold transition active:scale-95">
+          <i data-lucide="trophy" class="w-5 h-5 mb-1"></i><span class="text-xs">순위</span>
+        </button>
+      </div>
+    </section>
   </div>
 
-  <!-- Step Selection Modal (입실/퇴실) -->
-  <div id="stepModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[60] hidden opacity-0 transition-opacity duration-300">
-   <div class="glass-modal w-[90%] max-w-sm rounded-[2rem] p-7 shadow-2xl transform scale-95 transition-transform duration-300">
-    <h3 id="stepTitle" class="font-black text-2xl mb-1 text-center text-slate-800"></h3>
-    <p id="stepSubtitle" class="text-sm text-center mb-6 text-slate-500 font-medium"></p>
-    <div id="stepContent"></div>
-    <button id="stepBack" class="w-full py-4 rounded-xl text-sm font-bold mt-5 text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">취소</button>
+  <!-- Step Modal -->
+  <div id="stepModal" class="modal-overlay hidden">
+   <div class="modal-box flex flex-col min-h-[300px]">
+    <h3 id="stepTitle" class="font-extrabold text-xl mb-1 text-center text-slate-800"></h3>
+    <p id="stepSubtitle" class="text-sm text-center mb-6 text-slate-500"></p>
+    <div id="stepContent" class="flex-1"></div>
+    <button id="stepBack" class="w-full py-3.5 rounded-xl text-sm font-bold mt-4 bg-slate-100 text-slate-600 transition hover:bg-slate-200">취소</button>
    </div>
   </div>
 
-  <!-- Time View Modal (누적시간 조회) -->
-  <div id="timeModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[60] hidden opacity-0 transition-opacity duration-300">
-   <div class="glass-modal w-[90%] max-w-sm h-[80vh] flex flex-col rounded-[2rem] p-6 shadow-2xl transform scale-95 transition-transform duration-300">
-    <h3 class="font-black text-2xl mb-5 text-center text-slate-800 flex items-center justify-center gap-2">
-      <i data-lucide="clock-4" class="text-blue-500 w-7 h-7"></i> 누적시간
+  <!-- Time View Modal -->
+  <div id="timeModal" class="modal-overlay hidden">
+   <div class="modal-box flex flex-col h-[85vh] max-h-[600px]">
+    <h3 class="font-extrabold text-xl mb-4 text-center text-slate-800 flex items-center justify-center gap-2">
+      <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i> 누적시간 조회
     </h3>
-    
-    <!-- 탭 메뉴 -->
-    <div class="flex bg-slate-100 rounded-xl p-1 mb-5 text-sm font-bold">
-      <button id="timeView-tab-indiv" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchTimeViewTab('indiv')">개인별</button>
-      <button id="timeView-tab-class" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchTimeViewTab('class')">반별</button>
-      <button id="timeView-tab-chart" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchTimeViewTab('chart')">현황</button>
+    <div class="flex border-b border-slate-100 mb-4 p-1 bg-slate-50 rounded-lg">
+      <button id="timeView-tab-indiv" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchTimeViewTab('indiv')">개인별</button>
+      <button id="timeView-tab-class" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchTimeViewTab('class')">반별</button>
+      <button id="timeView-tab-chart" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchTimeViewTab('chart')">현황</button>
     </div>
-    
-    <!-- 탭 컨텐츠 -->
-    <div id="timeViewContent" class="overflow-y-auto flex-1 mb-2 space-y-3 pr-1 rounded-xl"></div>
-    
-    <div class="mt-4 pt-2">
-      <button onclick="closeModal('timeModal')" class="w-full py-4 rounded-xl text-sm font-bold text-white shadow-lg shadow-blue-500/30 bg-blue-500 hover:bg-blue-600 transition-colors">닫기</button>
+    <div id="timeViewContent" class="overflow-y-auto flex-1 p-1 space-y-2"></div>
+    <div class="mt-4 pt-4 border-t border-slate-100">
+      <button onclick="document.getElementById('timeModal').classList.add('hidden')" class="w-full py-3.5 rounded-xl text-sm font-bold bg-slate-800 text-white">닫기</button>
     </div>
    </div>
   </div>
 
-  <!-- Ranking Modal (순위 및 통계) -->
-  <div id="rankingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[60] hidden opacity-0 transition-opacity duration-300">
-   <div class="glass-modal w-[90%] max-w-sm h-[80vh] flex flex-col rounded-[2rem] p-6 shadow-2xl transform scale-95 transition-transform duration-300">
-    <h3 class="font-black text-2xl mb-5 text-center text-slate-800 flex items-center justify-center gap-2">
-      <i data-lucide="award" class="text-purple-500 w-7 h-7"></i> 명예의 전당
+  <!-- Ranking Modal -->
+  <div id="rankingModal" class="modal-overlay hidden">
+   <div class="modal-box flex flex-col h-[85vh] max-h-[600px]">
+    <h3 class="font-extrabold text-xl mb-4 text-center text-slate-800 flex items-center justify-center gap-2">
+      <i data-lucide="trophy" class="w-5 h-5 text-rose-500"></i> 순위 및 통계
     </h3>
-    
-    <!-- 탭 메뉴 -->
-    <div class="flex bg-slate-100 rounded-xl p-1 mb-5 text-sm font-bold">
-      <button id="tab-time" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchRankingTab('time')">시간</button>
-      <button id="tab-count" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchRankingTab('count')">횟수</button>
-      <button id="tab-perfect" class="flex-1 py-2 rounded-lg text-slate-500 transition-colors" onclick="switchRankingTab('perfect')">개근상</button>
+    <div class="flex border-b border-slate-100 mb-4 p-1 bg-slate-50 rounded-lg">
+      <button id="tab-time" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchRankingTab('time')">시간순</button>
+      <button id="tab-count" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchRankingTab('count')">참여순</button>
+      <button id="tab-perfect" class="flex-1 py-2 text-sm font-bold rounded-md" onclick="switchRankingTab('perfect')">개근자</button>
     </div>
-    
-    <!-- 탭 컨텐츠 -->
-    <div id="rankingContent" class="overflow-y-auto flex-1 mb-2 space-y-3 pr-1 rounded-xl"></div>
-    
-    <div class="mt-4 pt-2">
-      <button onclick="closeModal('rankingModal')" class="w-full py-4 rounded-xl text-sm font-bold text-white shadow-lg shadow-purple-500/30 bg-purple-500 hover:bg-purple-600 transition-colors">닫기</button>
+    <div id="rankingContent" class="overflow-y-auto flex-1 p-1 space-y-2"></div>
+    <div class="mt-4 pt-4 border-t border-slate-100">
+      <button onclick="document.getElementById('rankingModal').classList.add('hidden')" class="w-full py-3.5 rounded-xl text-sm font-bold bg-slate-800 text-white">닫기</button>
     </div>
    </div>
   </div>
 
   <!-- Alert Modal -->
-  <div id="alertModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-[100] hidden opacity-0 transition-opacity duration-200">
-   <div class="glass-modal w-[85%] max-w-[300px] rounded-[1.5rem] p-6 shadow-2xl text-center transform scale-95 transition-transform duration-200">
-    <div id="alertIcon" class="mx-auto w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4"><i data-lucide="info" class="w-6 h-6"></i></div>
-    <p id="alertMsg" class="font-bold text-[15px] mb-6 text-slate-800 whitespace-pre-line leading-relaxed"></p>
-    <button onclick="closeAlert()" class="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30">확인</button>
+  <div id="alertModal" class="modal-overlay hidden z-[100]">
+   <div class="alert-box">
+    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+      <i data-lucide="info" class="h-6 w-6 text-blue-600"></i>
+    </div>
+    <p id="alertMsg" class="font-bold text-slate-700 text-[15px] mb-6 leading-relaxed whitespace-pre-line"></p>
+    <button onclick="closeAlert()" class="w-full py-3 rounded-xl text-sm font-bold bg-blue-600 text-white">확인</button>
    </div>
   </div>
 
   <script>
     lucide.createIcons();
 
-    // Firebase 초기화 코드
+    // Firebase 초기화 (실제 사용시 키 교체 필요)
     firebase.initializeApp({
       apiKey: "AIzaSyAcY8A8MvbKoeh8H1FVwsxkmTkKT4gii-U",
       authDomain: "dongmyeong-study.firebaseapp.com",
@@ -238,24 +193,7 @@
     });
     const db = firebase.firestore();
 
-    // 애니메이션 모달 열기/닫기 유틸 함수
-    function openModalUI(id) {
-      const el = document.getElementById(id);
-      el.classList.remove('hidden');
-      // reflow
-      void el.offsetWidth;
-      el.classList.remove('opacity-0');
-      el.firstElementChild.classList.remove('scale-95');
-    }
-    
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      el.classList.add('opacity-0');
-      el.firstElementChild.classList.add('scale-95');
-      setTimeout(() => el.classList.add('hidden'), 300);
-    }
-
-    // 13시 30분 이후 미퇴실자 자동 퇴실 처리 로직
+    // 13:31 백그라운드 자동 퇴실 로직 (13:30까지 시간 인정)
     async function autoCheckoutMIA() {
       try {
         const checkinsSnap = await db.collection('checkins').get();
@@ -263,15 +201,19 @@
         
         checkinsSnap.forEach(async (doc) => {
           const data = doc.data();
-          if (!data.checkinTime) return;
+          if (!data.checkinTime) return; 
           
           const checkinTime = data.checkinTime.toDate();
-          const deadline = new Date(checkinTime);
-          deadline.setHours(13, 30, 0, 0);
           
-          if (now > deadline) {
+          const autoTriggerTime = new Date(checkinTime);
+          autoTriggerTime.setHours(13, 31, 0, 0); // 13:31에 강제 정리
+          
+          const maxEndTime = new Date(checkinTime);
+          maxEndTime.setHours(13, 30, 0, 0); // 최대 인정 시간은 13:30까지
+          
+          if (now >= autoTriggerTime) {
             const studentId = doc.id;
-            const diffMin = Math.floor((deadline - checkinTime) / 60000);
+            const diffMin = Math.floor((maxEndTime - checkinTime) / 60000);
             const validMin = diffMin > 0 ? diffMin : 0;
             
             const timeRef = db.collection('accumulated').doc(studentId);
@@ -289,15 +231,14 @@
             
             await timeRef.set({ 
               grade: data.grade, class: data.class, number: data.number, 
-              totalMinutes: total, dailyRecords: dailyRecords, lastUpdated: deadline.getTime() 
+              totalMinutes: total, dailyRecords: dailyRecords, lastUpdated: maxEndTime.getTime() 
             });
             await db.collection('checkins').doc(studentId).delete();
           }
         });
-      } catch (error) {
-        console.error("자동 퇴실 오류:", error);
-      }
+      } catch (error) { console.error("자동퇴실 에러:", error); }
     }
+
     autoCheckoutMIA();
     setInterval(autoCheckoutMIA, 60000);
 
@@ -305,27 +246,32 @@
     let stepState = { step: 0, grade: '', cls: '', num: '' };
 
     function openStepModal(mode) {
-      if (mode === 'checkin' || mode === 'checkout') {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        
-        // 시간을 분 단위로 환산하여 계산 (12:35 = 755분, 13:25 = 805분)
-        const totalMins = currentHour * 60 + currentMinute;
-        const startMins = 12 * 60 + 35;
-        const endMins = 13 * 60 + 25;
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes();
 
-        // 지정된 시간(12:35 ~ 13:25)을 벗어났는지 확인
-        if (totalMins < startMins || totalMins > endMins) {
-          showAlert('입/퇴실 가능 시간이 아닙니다.\n(12:35 ~ 13:25 에만 가능합니다)', 'clock', 'text-rose-600', 'bg-rose-100');
+      // 시간 제한 체크
+      if (mode === 'checkin') {
+        // 입실 허용 시간: 12:35 ~ 13:25 (755 ~ 805분)
+        if (currentMin < 755 || currentMin > 805) {
+          showAlert('현재 입실 가능 시간이 아닙니다.\n(입실 가능: 12:35 ~ 13:25)');
+          return;
+        }
+      } else if (mode === 'checkout') {
+        // 퇴실 허용 시간: 12:35 ~ 13:30 (755 ~ 810분)
+        if (currentMin < 755 || currentMin > 810) {
+          showAlert('현재 퇴실 가능 시간이 아닙니다.\n(퇴실 가능: 12:35 ~ 13:30)');
           return;
         }
       }
 
       currentMode = mode;
       stepState = { step: 0, grade: '', cls: '', num: '' };
-      openModalUI('stepModal');
+      document.getElementById('stepModal').classList.remove('hidden');
       renderStep();
+    }
+
+    function closeStepModal() {
+      document.getElementById('stepModal').classList.add('hidden');
     }
 
     function stepGoBackOrClose() {
@@ -333,7 +279,7 @@
         stepState.step--;
         renderStep();
       } else {
-        closeModal('stepModal');
+        closeStepModal();
       }
     }
 
@@ -344,35 +290,33 @@
       const backBtn = document.getElementById('stepBack'); 
       
       backBtn.textContent = stepState.step === 0 ? '취소' : '이전';
-      backBtn.onclick = stepState.step === 0 ? () => closeModal('stepModal') : stepGoBackOrClose;
-
-      const modeLabel = currentMode === 'checkin' ? '입실하기' : '퇴실하기';
-      const colorClass = currentMode === 'checkin' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30';
+      const modeLabel = currentMode === 'checkin' ? '입실' : '퇴실';
 
       if (stepState.step === 0) {
-        title.textContent = modeLabel;
+        title.textContent = modeLabel + '하기';
         subtitle.textContent = '학년을 선택해주세요';
         content.innerHTML = '<div class="grid grid-cols-3 gap-3">' +
-          [1,2,3].map(g => `<button class="step-btn shadow-sm" onclick="selectGrade(${g})">${g}학년</button>`).join('') +
+          [1,2,3].map(g => `<button class="step-btn" onclick="selectGrade(${g})">${g}학년</button>`).join('') +
           '</div>';
       } else if (stepState.step === 1) {
         title.textContent = `${stepState.grade}학년`;
         subtitle.textContent = '반을 선택해주세요';
         content.innerHTML = '<div class="grid grid-cols-4 gap-2">' +
-          [1,2,3,4,5,6,7].map(c => `<button class="step-btn shadow-sm" onclick="selectClass(${c})">${c}반</button>`).join('') +
+          [1,2,3,4,5,6,7].map(c => `<button class="step-btn" onclick="selectClass(${c})">${c}반</button>`).join('') +
           '</div>';
       } else if (stepState.step === 2) {
         title.textContent = `${stepState.grade}학년 ${stepState.cls}반`;
-        subtitle.textContent = '번호를 선택해주세요';
+        subtitle.textContent = '자신의 번호를 찾아주세요';
         content.innerHTML = '<div class="grid grid-cols-5 gap-2 pr-1" style="max-height:220px;overflow-y:auto;">' +
-          Array.from({length:27}, (_,i) => i+1).map(n => `<button class="step-btn text-sm shadow-sm p-2" onclick="selectNumber(${n})">${n}</button>`).join('') +
+          Array.from({length:27}, (_,i) => i+1).map(n => `<button class="step-btn text-sm py-3" onclick="selectNumber(${n})">${n}</button>`).join('') +
           '</div>';
       } else if (stepState.step === 3) {
         title.textContent = `${stepState.grade}학년 ${stepState.cls}반 ${stepState.num}번`;
-        subtitle.innerHTML = `<span class="px-3 py-1 bg-slate-100 rounded-full font-bold text-slate-700">${modeLabel.replace('하기','')}자 정보 확인</span>`;
+        subtitle.textContent = '해당 정보로 진행하시겠습니까?';
+        const btnColor = currentMode === 'checkin' ? 'bg-blue-600' : 'bg-slate-800';
         content.innerHTML = `
-          <div class="mt-4">
-            <button onclick="submitAction()" class="w-full py-4 rounded-xl text-base font-bold text-white shadow-lg transition-colors ${colorClass}">${modeLabel}</button>
+          <div class="flex items-center justify-center h-full">
+            <button onclick="submitAction()" class="w-full py-4 rounded-xl text-[16px] font-bold text-white shadow-lg ${btnColor} transition active:scale-95">${modeLabel} 확정하기</button>
           </div>
         `;
       }
@@ -381,35 +325,24 @@
     function selectGrade(g) { stepState.grade = g; stepState.step = 1; renderStep(); }
     function selectClass(c) { stepState.cls = c; stepState.step = 2; renderStep(); }
     function selectNumber(n) { stepState.num = n; stepState.step = 3; renderStep(); }
-    function getStudentId(grade, cls, num) { return `${grade}-${cls}-${num}`; }
 
     async function submitAction() {
       const { grade, cls, num } = stepState;
-      const studentId = getStudentId(grade, cls, num);
+      const studentId = `${grade}-${cls}-${num}`;
 
       try {
         if (currentMode === 'checkin') {
           const checkinDoc = await db.collection('checkins').doc(studentId).get();
-          if (checkinDoc.exists) { 
-            closeModal('stepModal'); 
-            showAlert('이미 입실되어 있습니다.', 'alert-circle', 'text-amber-600', 'bg-amber-100'); 
-            return; 
-          }
+          if (checkinDoc.exists) { closeStepModal(); showAlert('이미 입실되어 있습니다.'); return; }
 
           await db.collection('checkins').doc(studentId).set({
             grade: String(grade), class: String(cls), number: String(num),
             checkinTime: firebase.firestore.FieldValue.serverTimestamp()
           });
-          
-          closeModal('stepModal');
-          showAlert('입실 처리되었습니다.\n열공하세요! 🔥', 'check-circle-2', 'text-emerald-600', 'bg-emerald-100'); 
+          closeStepModal(); showAlert(`환영합니다!\n${grade}학년 ${cls}반 ${num}번 입실 완료 📚`); 
         } else {
           const doc = await db.collection('checkins').doc(studentId).get();
-          if (!doc.exists) { 
-            closeModal('stepModal'); 
-            showAlert('입실 기록이 없습니다.\n먼저 입실해주세요.', 'alert-triangle', 'text-rose-600', 'bg-rose-100'); 
-            return; 
-          }
+          if (!doc.exists) { closeStepModal(); showAlert('입실 기록을 찾을 수 없습니다.'); return; }
           
           const data = doc.data();
           const checkinTime = data.checkinTime.toDate();
@@ -436,101 +369,66 @@
           });
           await db.collection('checkins').doc(studentId).delete();
 
-          closeModal('stepModal');
-          const hrs = Math.floor(diffMin / 60);
-          const mins = diffMin % 60;
-          const totHrs = Math.floor(total / 60);
-          const totMins = total % 60;
-          showAlert(`퇴실 완료!\n\n오늘 공부: ${hrs > 0 ? hrs + '시간 ' : ''}${mins}분\n총 누적: ${totHrs > 0 ? totHrs + '시간 ' : ''}${totMins}분`, 'party-popper', 'text-blue-600', 'bg-blue-100');
+          closeStepModal();
+          const hrs = Math.floor(diffMin / 60); const mins = diffMin % 60;
+          const th = Math.floor(total/60); const tm = total % 60;
+          showAlert(`고생하셨습니다! 퇴실 완료 🎉\n\n오늘: ${hrs > 0 ? hrs + '시간 ' : ''}${mins}분\n총합: ${th > 0 ? th + '시간 ' : ''}${tm}분`);
         }
-      } catch (error) {
-        console.error(error);
-        showAlert('오류가 발생했습니다.\n다시 시도해주세요.', 'x-circle', 'text-rose-600', 'bg-rose-100');
-      }
+      } catch (error) { showAlert('오류가 발생했습니다. 다시 시도해주세요.'); }
     }
 
+    // --- 시간 & 차트 로직 ---
     let cachedTimeViewData = [];
-
     async function openTimeModal() {
-      openModalUI('timeModal');
-      document.getElementById('timeViewContent').innerHTML = `
-        <div class="flex flex-col items-center justify-center h-40">
-          <i data-lucide="loader-2" class="w-8 h-8 text-blue-500 animate-spin mb-2"></i>
-          <p class="text-sm text-slate-500 font-medium">데이터를 불러오는 중...</p>
-        </div>
-      `;
-      lucide.createIcons();
-      
+      document.getElementById('timeModal').classList.remove('hidden');
+      document.getElementById('timeViewContent').innerHTML = '<div class="flex justify-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
       try {
         const querySnap = await db.collection('accumulated').get();
         cachedTimeViewData = [];
         querySnap.forEach(doc => cachedTimeViewData.push(doc.data()));
         switchTimeViewTab('indiv');
-      } catch (error) {
-        document.getElementById('timeViewContent').innerHTML = '<p class="text-center text-rose-500 py-10 font-bold">데이터 로드 실패</p>';
-      }
+      } catch (e) { document.getElementById('timeViewContent').innerHTML = '<p class="text-center text-red-500 py-4 font-medium">데이터 로딩 실패</p>'; }
     }
 
     function switchTimeViewTab(tab) {
-      // 탭 스타일 활성화
       ['indiv', 'class', 'chart'].forEach(t => {
         const el = document.getElementById(`timeView-tab-${t}`);
         if(el) {
-          if(t === tab) {
-            el.className = 'flex-1 py-2 rounded-lg bg-white text-blue-600 shadow-sm transition-all';
-          } else {
-            el.className = 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
-          }
+          el.className = t === tab ? 'flex-1 py-2 text-sm font-bold rounded-md bg-white shadow-sm text-indigo-600' : 'flex-1 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-slate-700';
         }
       });
-
       const content = document.getElementById('timeViewContent');
       content.innerHTML = '';
 
       if (tab === 'indiv') {
         const sorted = [...cachedTimeViewData].sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
-        
         sorted.forEach(record => {
           const mins = record.totalMinutes || 0;
           const timeStr = `${Math.floor(mins/60) > 0 ? Math.floor(mins/60) + '시간 ' : ''}${mins%60}분`;
-          const item = document.createElement('div');
-          item.className = 'p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex justify-between items-center';
-          item.innerHTML = `<span class="font-bold text-slate-700">${record.grade}학년 ${record.class}반 ${record.number}번</span>
-                            <span class="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-sm">${timeStr}</span>`;
-          content.appendChild(item);
+          content.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center bg-white border border-slate-100 shadow-sm mb-2"><span class="text-slate-700">${record.grade}학년 ${record.class}반 ${record.number}번</span><span class="text-indigo-600">${timeStr}</span></div>`;
         });
-        if (sorted.length === 0) content.innerHTML = '<p class="text-center text-slate-500 py-10">기록이 없습니다.</p>';
+        if (sorted.length === 0) content.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">기록이 없습니다.</p>';
       } else if (tab === 'class') {
         content.innerHTML = `
-          <div class="flex gap-2 mb-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-            <select id="filter-grade" class="flex-1 p-2 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none" onchange="renderFilteredClassTime()">
-              <option value="">학년</option>
-              <option value="1">1학년</option>
-              <option value="2">2학년</option>
-              <option value="3">3학년</option>
+          <div class="flex gap-2 mb-4">
+            <select id="filter-grade" class="flex-1 p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none focus:border-indigo-500 text-slate-700" onchange="renderFilteredClassTime()">
+              <option value="">학년</option><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
             </select>
-            <select id="filter-class" class="flex-1 p-2 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 outline-none" onchange="renderFilteredClassTime()">
-              <option value="">반</option>
-              ${[1,2,3,4,5,6,7].map(c => `<option value="${c}">${c}반</option>`).join('')}
+            <select id="filter-class" class="flex-1 p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none focus:border-indigo-500 text-slate-700" onchange="renderFilteredClassTime()">
+              <option value="">반</option>${[1,2,3,4,5,6,7].map(c => `<option value="${c}">${c}반</option>`).join('')}
             </select>
           </div>
-          <div id="filteredClassList" class="space-y-3">
-            <div class="text-center py-10 flex flex-col items-center">
-              <i data-lucide="search" class="w-8 h-8 text-slate-300 mb-2"></i>
-              <p class="text-slate-500 text-sm font-medium">학년과 반을 선택해주세요.</p>
-            </div>
-          </div>
+          <div id="filteredClassList" class="space-y-2"><p class="text-center text-slate-400 py-6 text-sm font-medium">학년과 반을 선택해주세요</p></div>
         `;
-        lucide.createIcons();
       } else if (tab === 'chart') {
         content.innerHTML = `
-          <div class="flex justify-center gap-2 mb-5 p-1 bg-slate-100 rounded-full">
-             <button id="chart-subtab-all" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchChartSubTab('all')">전체</button>
-             <button id="chart-subtab-g1" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchChartSubTab('g1')">1학년</button>
-             <button id="chart-subtab-g2" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchChartSubTab('g2')">2학년</button>
-             <button id="chart-subtab-g3" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchChartSubTab('g3')">3학년</button>
+          <div class="flex justify-center gap-1.5 mb-5 overflow-x-auto pb-2">
+             <button id="chart-subtab-all" class="px-4 py-2 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-md shadow-indigo-200 shrink-0" onclick="switchChartSubTab('all')">전체</button>
+             <button id="chart-subtab-g1" class="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500 shrink-0" onclick="switchChartSubTab('g1')">1학년</button>
+             <button id="chart-subtab-g2" class="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500 shrink-0" onclick="switchChartSubTab('g2')">2학년</button>
+             <button id="chart-subtab-g3" class="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500 shrink-0" onclick="switchChartSubTab('g3')">3학년</button>
           </div>
-          <div id="chartContainer" class="p-2 space-y-5"></div>
+          <div id="chartContainer" class="p-1 space-y-4"></div>
         `;
         switchChartSubTab('all');
       }
@@ -539,9 +437,7 @@
     function switchChartSubTab(scope) {
       ['all', 'g1', 'g2', 'g3'].forEach(s => {
          const btn = document.getElementById(`chart-subtab-${s}`);
-         if(btn) {
-            btn.className = s === scope ? 'flex-1 py-1.5 rounded-full text-xs font-bold bg-blue-500 text-white shadow-md transition-all' : 'flex-1 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-         }
+         if(btn) btn.className = s === scope ? 'px-4 py-2 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-md shadow-indigo-200 shrink-0' : 'px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500 shrink-0';
       });
 
       const container = document.getElementById('chartContainer');
@@ -554,11 +450,7 @@
             if(d.grade === '2') sum2 += (d.totalMinutes || 0);
             if(d.grade === '3') sum3 += (d.totalMinutes || 0);
          });
-         dataPoints = [
-            { label: '1학년', val: sum1 },
-            { label: '2학년', val: sum2 },
-            { label: '3학년', val: sum3 }
-         ];
+         dataPoints = [{ label: '1학년', val: sum1 }, { label: '2학년', val: sum2 }, { label: '3학년', val: sum3 }];
       } else {
          const targetGrade = scope.replace('g', '');
          const classSums = {};
@@ -569,320 +461,154 @@
       }
 
       const maxVal = Math.max(...dataPoints.map(d => d.val), 1);
-
       container.innerHTML = dataPoints.map((d) => {
          const width = (d.val / maxVal) * 100;
-         const hrs = Math.floor(d.val / 60);
-         const mins = d.val % 60;
-         const timeStr = hrs > 0 ? `${hrs}시간 ${mins}분` : `${mins}분`;
-         
+         const timeStr = Math.floor(d.val / 60) > 0 ? `${Math.floor(d.val / 60)}시간 ${d.val % 60}분` : `${d.val % 60}분`;
          return `
            <div>
-              <div class="flex justify-between text-sm font-bold text-slate-700 mb-1.5 px-1">
-                <span>${d.label}</span>
-                <span class="text-blue-600">${timeStr}</span>
-              </div>
-              <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden shadow-inner">
-                <div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full rounded-full transition-all duration-1000 ease-out" style="width: ${width}%"></div>
+              <div class="flex justify-between text-xs font-bold text-slate-600 mb-1.5 px-1"><span>${d.label}</span><span class="text-indigo-600">${timeStr}</span></div>
+              <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden shadow-inner">
+                <div class="bg-gradient-to-r from-indigo-400 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out" style="width: ${width}%"></div>
               </div>
            </div>
          `;
       }).join('');
       
-      const bars = container.querySelectorAll('.bg-gradient-to-r');
-      bars.forEach(bar => {
-        const targetWidth = bar.style.width;
-        bar.style.width = '0%';
-        setTimeout(() => { bar.style.width = targetWidth; }, 50);
-      });
+      setTimeout(() => {
+        container.querySelectorAll('.bg-gradient-to-r').forEach(bar => {
+          const w = bar.style.width; bar.style.width = '0%'; setTimeout(() => { bar.style.width = w; }, 50);
+        });
+      }, 10);
     }
 
     function renderFilteredClassTime() {
-      const g = document.getElementById('filter-grade').value;
-      const c = document.getElementById('filter-class').value;
+      const g = document.getElementById('filter-grade').value, c = document.getElementById('filter-class').value;
       const container = document.getElementById('filteredClassList');
-
-      if (!g || !c) {
-        container.innerHTML = '<div class="text-center py-10"><p class="text-slate-500 text-sm font-medium">학년과 반을 모두 선택해주세요.</p></div>';
-        return;
-      }
+      if (!g || !c) return container.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">학년과 반을 선택해주세요.</p>';
 
       const filtered = cachedTimeViewData.filter(d => d.grade === g && d.class === c);
-      let classTotalMinutes = 0;
-      filtered.forEach(record => classTotalMinutes += (record.totalMinutes || 0));
+      let classTotalMinutes = filtered.reduce((acc, cur) => acc + (cur.totalMinutes || 0), 0);
       filtered.sort((a, b) => (b.totalMinutes || 0) - (a.totalMinutes || 0));
 
       container.innerHTML = '';
-      
       if (filtered.length > 0) {
-        const totalHrs = Math.floor(classTotalMinutes / 60);
-        const totalMins = classTotalMinutes % 60;
-        const totalTimeStr = `${totalHrs > 0 ? totalHrs + '시간 ' : ''}${totalMins}분`;
-        
-        container.innerHTML = `
-          <div class="mb-5 p-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl text-center shadow-lg text-white relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full blur-xl transform translate-x-1/2 -translate-y-1/2"></div>
-            <p class="text-blue-100 text-xs font-bold mb-1 tracking-wider">${g}학년 ${c}반 총 누적 시간</p>
-            <p class="text-3xl font-black tracking-tight">🔥 ${totalTimeStr}</p>
+        const totalTimeStr = `${Math.floor(classTotalMinutes/60) > 0 ? Math.floor(classTotalMinutes/60) + '시간 ' : ''}${classTotalMinutes%60}분`;
+        container.innerHTML += `
+          <div class="mb-4 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl text-center shadow-sm">
+            <p class="text-xs text-indigo-500 font-bold mb-1">${g}학년 ${c}반 총 누적</p>
+            <p class="text-2xl font-black text-indigo-700 tracking-tight">🔥 ${totalTimeStr} 🔥</p>
           </div>
         `;
       }
-
+      
       filtered.forEach((record, idx) => {
-         const mins = record.totalMinutes || 0;
-         const timeStr = `${Math.floor(mins/60) > 0 ? Math.floor(mins/60) + '시간 ' : ''}${mins%60}분`;
-         let medal = `<span class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full text-xs font-bold">${idx+1}</span>`;
-         if(idx === 0) medal = `<span class="text-xl">🥇</span>`;
-         else if(idx === 1) medal = `<span class="text-xl">🥈</span>`;
-         else if(idx === 2) medal = `<span class="text-xl">🥉</span>`;
-         
-         const item = document.createElement('div');
-         item.className = 'p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex justify-between items-center';
-         item.innerHTML = `<div class="flex items-center gap-3">${medal}<span class="font-bold text-slate-700">${record.number}번</span></div>
-                           <span class="font-black text-blue-600">${timeStr}</span>`;
-         container.appendChild(item);
+         const timeStr = `${Math.floor(record.totalMinutes/60) > 0 ? Math.floor(record.totalMinutes/60) + '시간 ' : ''}${record.totalMinutes%60}분`;
+         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}위`;
+         container.innerHTML += `<div class="p-3.5 rounded-xl text-sm font-bold flex justify-between items-center bg-white border border-slate-100 shadow-sm mb-2"><span class="text-slate-700">${medal} ${record.number}번</span><span class="text-indigo-600">${timeStr}</span></div>`;
       });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<div class="text-center py-10"><p class="text-slate-500 text-sm font-medium">해당 반에 기록된 학생이 없습니다.</p></div>';
-      }
+      if (filtered.length === 0) container.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">참여 기록이 없습니다.</p>';
     }
 
+    // --- 랭킹 및 개근 로직 ---
     let cachedRankingData = [];
-
     async function openRankingModal() {
-      openModalUI('rankingModal');
-      document.getElementById('rankingContent').innerHTML = `
-        <div class="flex flex-col items-center justify-center h-40">
-          <i data-lucide="loader-2" class="w-8 h-8 text-purple-500 animate-spin mb-2"></i>
-          <p class="text-sm text-slate-500 font-medium">랭킹 집계 중...</p>
-        </div>
-      `;
-      lucide.createIcons();
-      
+      document.getElementById('rankingModal').classList.remove('hidden');
+      document.getElementById('rankingContent').innerHTML = '<div class="flex justify-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div></div>';
       try {
         const querySnap = await db.collection('accumulated').get();
-        cachedRankingData = [];
-        querySnap.forEach(doc => cachedRankingData.push(doc.data()));
+        cachedRankingData = []; querySnap.forEach(doc => cachedRankingData.push(doc.data()));
         switchRankingTab('time');
-      } catch (error) {
-        document.getElementById('rankingContent').innerHTML = '<p class="text-center text-rose-500 py-10 font-bold">데이터 로드 실패</p>';
-      }
+      } catch (e) { document.getElementById('rankingContent').innerHTML = '<p class="text-center text-red-500 py-4 font-medium">데이터 로딩 실패</p>'; }
     }
 
     function switchRankingTab(tab) {
       ['time', 'count', 'perfect'].forEach(t => {
         const el = document.getElementById(`tab-${t}`);
-        if(el) {
-          el.className = t === tab ? 'flex-1 py-2 rounded-lg bg-white text-purple-600 shadow-sm transition-all' : 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
-        }
+        if (el) el.className = t === tab ? 'flex-1 py-2 text-sm font-bold rounded-md bg-white shadow-sm text-rose-600' : 'flex-1 py-2 text-sm font-bold rounded-md text-slate-500 hover:text-slate-700';
       });
-
-      const content = document.getElementById('rankingContent');
-      content.innerHTML = '';
-
+      const content = document.getElementById('rankingContent'); content.innerHTML = '';
       if (tab === 'time') {
-        content.innerHTML = `
-          <div class="flex justify-center gap-2 mb-4 p-1 bg-slate-100 rounded-full">
-             <button id="time-subtab-indiv" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchTimeRankingSubTab('indiv')">개인전</button>
-             <button id="time-subtab-class" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchTimeRankingSubTab('class')">학급전</button>
-          </div>
-          <div id="timeRankingList" class="space-y-3"></div>
-        `;
+        content.innerHTML = `<div class="flex justify-center gap-2 mb-4"><button id="time-subtab-indiv" class="px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200" onclick="switchTimeRankingSubTab('indiv')">개인별 상위</button><button id="time-subtab-class" class="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500" onclick="switchTimeRankingSubTab('class')">학급별 상위</button></div><div id="timeRankingList" class="space-y-2"></div>`;
         switchTimeRankingSubTab('indiv');
       } else if (tab === 'count') {
-        content.innerHTML = `
-          <div class="flex justify-center gap-2 mb-4 p-1 bg-slate-100 rounded-full">
-             <button id="subtab-indiv" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchCountSubTab('indiv')">개인전</button>
-             <button id="subtab-class" class="flex-1 py-1.5 rounded-full text-xs font-bold transition-all" onclick="switchCountSubTab('class')">학급전</button>
-          </div>
-          <div id="countRankingList" class="space-y-3"></div>
-        `;
+        content.innerHTML = `<div class="flex justify-center gap-2 mb-4"><button id="subtab-indiv" class="px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200" onclick="switchCountSubTab('indiv')">개인별 상위</button><button id="subtab-class" class="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500" onclick="switchCountSubTab('class')">학급별 상위</button></div><div id="countRankingList" class="space-y-2"></div>`;
         switchCountSubTab('indiv');
-      } else if (tab === 'perfect') {
-        renderPerfectAttendance(content);
-      }
+      } else if (tab === 'perfect') { renderPerfectAttendance(content); }
     }
 
     function switchTimeRankingSubTab(subTab) {
-      document.getElementById('time-subtab-indiv').className = subTab === 'indiv' ? 'flex-1 py-1.5 rounded-full text-xs font-bold bg-purple-500 text-white shadow-md transition-all' : 'flex-1 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-      document.getElementById('time-subtab-class').className = subTab === 'class' ? 'flex-1 py-1.5 rounded-full text-xs font-bold bg-purple-500 text-white shadow-md transition-all' : 'flex-1 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
+      document.getElementById('time-subtab-indiv').className = subTab === 'indiv' ? 'px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200' : 'px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+      document.getElementById('time-subtab-class').className = subTab === 'class' ? 'px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200' : 'px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
       
-      const listContainer = document.getElementById('timeRankingList');
-      listContainer.innerHTML = '';
-
+      const list = document.getElementById('timeRankingList'); list.innerHTML = '';
       if (subTab === 'indiv') {
         const sorted = [...cachedRankingData].sort((a, b) => (b.totalMinutes || 0) - (a.totalMinutes || 0)).slice(0, 10);
-        
         sorted.forEach((record, idx) => {
-          const mins = record.totalMinutes || 0;
-          if (mins === 0) return;
-          const timeStr = `${Math.floor(mins/60) > 0 ? Math.floor(mins/60) + '시간 ' : ''}${mins%60}분`;
-          let medal = `<span class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full text-xs font-bold">${idx+1}</span>`;
-          let bgClass = 'bg-white border-slate-100';
-          if(idx === 0) { medal = `<span class="text-xl drop-shadow-md">🥇</span>`; bgClass = 'bg-amber-50 border-amber-100'; }
-          else if(idx === 1) { medal = `<span class="text-xl drop-shadow-md">🥈</span>`; bgClass = 'bg-slate-50 border-slate-200'; }
-          else if(idx === 2) { medal = `<span class="text-xl drop-shadow-md">🥉</span>`; bgClass = 'bg-orange-50 border-orange-100'; }
-
-          const item = document.createElement('div');
-          item.className = `p-4 rounded-2xl border shadow-sm flex justify-between items-center ${bgClass}`;
-          item.innerHTML = `<div class="flex items-center gap-3">${medal}<span class="font-bold text-slate-700">${record.grade}학년 ${record.class}반 ${record.number}번</span></div>
-                            <span class="font-black text-amber-600">${timeStr}</span>`;
-          listContainer.appendChild(item);
+          if ((record.totalMinutes || 0) === 0) return;
+          const timeStr = `${Math.floor(record.totalMinutes/60) > 0 ? Math.floor(record.totalMinutes/60) + '시간 ' : ''}${record.totalMinutes%60}분`;
+          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${record.grade}-${record.class}-${record.number}</span><span class="text-rose-600">${timeStr}</span></div>`;
         });
-        
-        if (listContainer.innerHTML === '') listContainer.innerHTML = '<p class="text-center text-slate-500 py-10">기록이 없습니다.</p>';
       } else {
         const classTimes = {};
-        cachedRankingData.forEach(record => {
-          const classId = `${record.grade}학년 ${record.class}반`;
-          const mins = record.totalMinutes || 0;
-          if (mins > 0) classTimes[classId] = (classTimes[classId] || 0) + mins;
+        cachedRankingData.forEach(r => { if(r.totalMinutes>0) classTimes[`${r.grade}-${r.class}`] = (classTimes[`${r.grade}-${r.class}`]||0) + r.totalMinutes; });
+        Object.entries(classTimes).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([name, min], idx) => {
+          const timeStr = `${Math.floor(min/60) > 0 ? Math.floor(min/60) + '시간 ' : ''}${min%60}분`;
+          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}반</span><span class="text-indigo-600">${timeStr}</span></div>`;
         });
-
-        const sortedClasses = Object.entries(classTimes).sort((a,b) => b[1] - a[1]).slice(0, 10);
-        sortedClasses.forEach(([className, totalMins], idx) => {
-          const timeStr = `${Math.floor(totalMins/60) > 0 ? Math.floor(totalMins/60) + '시간 ' : ''}${totalMins%60}분`;
-          let medal = `<span class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full text-xs font-bold">${idx+1}</span>`;
-          let bgClass = 'bg-white border-slate-100';
-          if(idx === 0) { medal = `<span class="text-xl drop-shadow-md">🥇</span>`; bgClass = 'bg-indigo-50 border-indigo-100'; }
-          else if(idx === 1) { medal = `<span class="text-xl drop-shadow-md">🥈</span>`; bgClass = 'bg-slate-50 border-slate-200'; }
-          else if(idx === 2) { medal = `<span class="text-xl drop-shadow-md">🥉</span>`; bgClass = 'bg-orange-50 border-orange-100'; }
-
-          const item = document.createElement('div');
-          item.className = `p-4 rounded-2xl border shadow-sm flex justify-between items-center ${bgClass}`;
-          item.innerHTML = `<div class="flex items-center gap-3">${medal}<span class="font-bold text-slate-700">${className}</span></div>
-                            <span class="font-black text-indigo-600">${timeStr}</span>`;
-          listContainer.appendChild(item);
-        });
-        if (listContainer.innerHTML === '') listContainer.innerHTML = '<p class="text-center text-slate-500 py-10">기록이 없습니다.</p>';
       }
+      if (list.innerHTML === '') list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">기록이 없습니다.</p>';
     }
 
     function switchCountSubTab(subTab) {
-      document.getElementById('subtab-indiv').className = subTab === 'indiv' ? 'flex-1 py-1.5 rounded-full text-xs font-bold bg-purple-500 text-white shadow-md transition-all' : 'flex-1 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-      document.getElementById('subtab-class').className = subTab === 'class' ? 'flex-1 py-1.5 rounded-full text-xs font-bold bg-purple-500 text-white shadow-md transition-all' : 'flex-1 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-      
-      const listContainer = document.getElementById('countRankingList');
-      listContainer.innerHTML = '';
-
+      document.getElementById('subtab-indiv').className = subTab === 'indiv' ? 'px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200' : 'px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+      document.getElementById('subtab-class').className = subTab === 'class' ? 'px-4 py-2 rounded-full text-xs font-bold bg-rose-500 text-white shadow-md shadow-rose-200' : 'px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-500';
+      const list = document.getElementById('countRankingList'); list.innerHTML = '';
       if (subTab === 'indiv') {
-         const sorted = [...cachedRankingData].sort((a, b) => {
-           const countA = Object.keys(a.dailyRecords || {}).length;
-           const countB = Object.keys(b.dailyRecords || {}).length;
-           if (countB !== countA) return countB - countA;
-           return (b.totalMinutes||0) - (a.totalMinutes||0);
-         }).slice(0, 10);
-
-         sorted.forEach((record, idx) => {
-           const count = Object.keys(record.dailyRecords || {}).length;
-           if (count === 0) return;
-           let medal = `<span class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full text-xs font-bold">${idx+1}</span>`;
-           let bgClass = 'bg-white border-slate-100';
-           if(idx === 0) { medal = `<span class="text-xl drop-shadow-md">🥇</span>`; bgClass = 'bg-amber-50 border-amber-100'; }
-           else if(idx === 1) { medal = `<span class="text-xl drop-shadow-md">🥈</span>`; bgClass = 'bg-slate-50 border-slate-200'; }
-           else if(idx === 2) { medal = `<span class="text-xl drop-shadow-md">🥉</span>`; bgClass = 'bg-orange-50 border-orange-100'; }
-
-           const item = document.createElement('div');
-           item.className = `p-4 rounded-2xl border shadow-sm flex justify-between items-center ${bgClass}`;
-           item.innerHTML = `<div class="flex items-center gap-3">${medal}<span class="font-bold text-slate-700">${record.grade}학년 ${record.class}반 ${record.number}번</span></div>
-                             <span class="font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs">${count}회 참석</span>`;
-           listContainer.appendChild(item);
+         [...cachedRankingData].sort((a, b) => {
+           const cA = Object.keys(a.dailyRecords || {}).length, cB = Object.keys(b.dailyRecords || {}).length;
+           return cB !== cA ? cB - cA : (b.totalMinutes||0) - (a.totalMinutes||0);
+         }).slice(0, 10).forEach((r, idx) => {
+           const count = Object.keys(r.dailyRecords || {}).length;
+           if(count===0) return;
+           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${r.grade}-${r.class}-${r.number}</span><span class="text-rose-600">${count}회 참석</span></div>`;
          });
-         
-         if (listContainer.innerHTML === '') listContainer.innerHTML = '<p class="text-center text-slate-500 py-10">기록이 없습니다.</p>';
       } else {
          const classCounts = {};
-         cachedRankingData.forEach(record => {
-           const classId = `${record.grade}학년 ${record.class}반`;
-           const count = Object.keys(record.dailyRecords || {}).length;
-           if (count > 0) classCounts[classId] = (classCounts[classId] || 0) + count;
+         cachedRankingData.forEach(r => {
+           const c = Object.keys(r.dailyRecords || {}).length;
+           if(c>0) classCounts[`${r.grade}-${r.class}`] = (classCounts[`${r.grade}-${r.class}`]||0) + c;
          });
-
-         const sortedClasses = Object.entries(classCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
-         sortedClasses.forEach(([className, count], idx) => {
-           let medal = `<span class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full text-xs font-bold">${idx+1}</span>`;
-           let bgClass = 'bg-white border-slate-100';
-           if(idx === 0) { medal = `<span class="text-xl drop-shadow-md">🥇</span>`; bgClass = 'bg-indigo-50 border-indigo-100'; }
-           else if(idx === 1) { medal = `<span class="text-xl drop-shadow-md">🥈</span>`; bgClass = 'bg-slate-50 border-slate-200'; }
-           else if(idx === 2) { medal = `<span class="text-xl drop-shadow-md">🥉</span>`; bgClass = 'bg-orange-50 border-orange-100'; }
-
-           const item = document.createElement('div');
-           item.className = `p-4 rounded-2xl border shadow-sm flex justify-between items-center ${bgClass}`;
-           item.innerHTML = `<div class="flex items-center gap-3">${medal}<span class="font-bold text-slate-700">${className}</span></div>
-                             <span class="font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-xs">총 ${count}회</span>`;
-           listContainer.appendChild(item);
+         Object.entries(classCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([name, count], idx) => {
+           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}반</span><span class="text-indigo-600">${count}회 참석</span></div>`;
          });
-         if (listContainer.innerHTML === '') listContainer.innerHTML = '<p class="text-center text-slate-500 py-10">기록이 없습니다.</p>';
       }
+      if (list.innerHTML === '') list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">기록이 없습니다.</p>';
     }
 
     function renderPerfectAttendance(container) {
-       // 9월 21일 ~ 10월 2일 (주말 및 24, 25 제외 총 8일)
+       // 8일치 날짜 매칭 배열 (9/21~10/2 주말제외 + 24,25제외)
        const targetDates = ['09-21', '09-22', '09-23', '09-28', '09-29', '09-30', '10-01', '10-02'];
-       
        const perfectStudents = cachedRankingData.filter(student => {
          const recordDates = Object.keys(student.dailyRecords || {});
          return targetDates.every(td => recordDates.some(rd => rd.endsWith(td)));
        });
-
-       perfectStudents.sort((a,b) => {
-          if(a.grade !== b.grade) return a.grade - b.grade;
-          if(a.class !== b.class) return a.class - b.class;
-          return a.number - b.number;
-       });
+       perfectStudents.sort((a,b) => a.grade!==b.grade ? a.grade-b.grade : (a.class!==b.class ? a.class-b.class : a.number-b.number));
 
        if (perfectStudents.length > 0) {
-         const header = document.createElement('div');
-         header.className = 'mb-4 text-center bg-gradient-to-r from-emerald-400 to-teal-500 py-3 rounded-2xl shadow-md';
-         header.innerHTML = `<p class="text-white font-bold tracking-wide">🎉 8일 완주자 총 ${perfectStudents.length}명 🎉</p>`;
-         container.appendChild(header);
-
-         const listGrid = document.createElement('div');
-         listGrid.className = 'grid grid-cols-2 gap-3';
-
-         perfectStudents.forEach(record => {
-           const item = document.createElement('div');
-           item.className = 'p-3 rounded-xl shadow-sm text-sm font-bold text-center border border-emerald-100 bg-white text-emerald-700 flex items-center justify-center gap-2';
-           item.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> ${record.grade}학년 ${record.class}반 ${record.number}번`;
-           listGrid.appendChild(item);
+         container.innerHTML = `<div class="mb-4 text-center text-sm text-teal-700 font-bold bg-teal-50 border border-teal-100 py-3 rounded-xl shadow-sm">🎉 8일 개근 달성자 : 총 ${perfectStudents.length}명 🎉</div>`;
+         const grid = document.createElement('div'); grid.className = 'grid grid-cols-2 gap-2.5';
+         perfectStudents.forEach(r => {
+           grid.innerHTML += `<div class="p-3 rounded-xl shadow-sm text-[13px] font-extrabold text-center border border-slate-100 bg-white text-slate-700">${r.grade}학년 ${r.class}반 ${r.number}번</div>`;
          });
-         container.appendChild(listGrid);
-         lucide.createIcons();
+         container.appendChild(grid);
        } else {
-         container.innerHTML = `
-           <div class="text-center py-12">
-             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🎁</div>
-             <p class="text-slate-500 font-medium leading-relaxed">아직 8일 개근 달성자가 없습니다.<br>여러분의 완주를 응원합니다!</p>
-           </div>
-         `;
+         container.innerHTML = `<div class="text-center py-12"><i data-lucide="award" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i><p class="text-slate-400 text-sm font-medium">아직 8일 개근 달성자가 없습니다.<br>완주를 응원합니다!</p></div>`;
+         lucide.createIcons();
        }
     }
 
-    function showAlert(msg, iconName = 'info', iconColor = 'text-indigo-600', iconBg = 'bg-indigo-100') {
-      const alertIconContainer = document.getElementById('alertIcon');
-      alertIconContainer.className = `mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${iconBg} ${iconColor}`;
-      alertIconContainer.innerHTML = `<i data-lucide="${iconName}" class="w-6 h-6"></i>`;
-      lucide.createIcons();
-      
-      document.getElementById('alertMsg').textContent = msg;
-      openModalUI('alertModal');
-    }
-
-    function closeAlert() {
-      closeModal('alertModal');
-    }
-
-    function toggleFullscreen() {
-      const elem = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (elem.requestFullscreen) elem.requestFullscreen();
-        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      }
-    }
+    function showAlert(msg) { document.getElementById('alertMsg').textContent = msg; document.getElementById('alertModal').classList.remove('hidden'); }
+    function closeAlert() { document.getElementById('alertModal').classList.add('hidden'); }
   </script>
- </body>
+</body>
 </html>
