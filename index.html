@@ -546,14 +546,14 @@
         sorted.forEach((record, idx) => {
           if ((record.totalMinutes || 0) === 0) return;
           const timeStr = `${Math.floor(record.totalMinutes/60) > 0 ? Math.floor(record.totalMinutes/60) + '시간 ' : ''}${record.totalMinutes%60}분`;
-          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${record.grade}-${record.class}-${record.number}</span><span class="text-rose-600">${timeStr}</span></div>`;
+          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${record.grade}학년 ${record.class}반 ${record.number}번</span><span class="text-rose-600">${timeStr}</span></div>`;
         });
       } else {
         const classTimes = {};
-        cachedRankingData.forEach(r => { if(r.totalMinutes>0) classTimes[`${r.grade}-${r.class}`] = (classTimes[`${r.grade}-${r.class}`]||0) + r.totalMinutes; });
+        cachedRankingData.forEach(r => { if(r.totalMinutes>0) classTimes[`${r.grade}학년 ${r.class}반`] = (classTimes[`${r.grade}학년 ${r.class}반`]||0) + r.totalMinutes; });
         Object.entries(classTimes).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([name, min], idx) => {
           const timeStr = `${Math.floor(min/60) > 0 ? Math.floor(min/60) + '시간 ' : ''}${min%60}분`;
-          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}반</span><span class="text-indigo-600">${timeStr}</span></div>`;
+          list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}</span><span class="text-indigo-600">${timeStr}</span></div>`;
         });
       }
       if (list.innerHTML === '') list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">기록이 없습니다.</p>';
@@ -570,16 +570,16 @@
          }).slice(0, 10).forEach((r, idx) => {
            const count = Object.keys(r.dailyRecords || {}).length;
            if(count===0) return;
-           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${r.grade}-${r.class}-${r.number}</span><span class="text-rose-600">${count}회 참석</span></div>`;
+           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-amber-50 border border-amber-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${r.grade}학년 ${r.class}반 ${r.number}번</span><span class="text-rose-600">${count}회 참석</span></div>`;
          });
       } else {
          const classCounts = {};
          cachedRankingData.forEach(r => {
            const c = Object.keys(r.dailyRecords || {}).length;
-           if(c>0) classCounts[`${r.grade}-${r.class}`] = (classCounts[`${r.grade}-${r.class}`]||0) + c;
+           if(c>0) classCounts[`${r.grade}학년 ${r.class}반`] = (classCounts[`${r.grade}학년 ${r.class}반`]||0) + c;
          });
          Object.entries(classCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([name, count], idx) => {
-           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}반</span><span class="text-indigo-600">${count}회 참석</span></div>`;
+           list.innerHTML += `<div class="p-4 rounded-xl text-sm font-bold flex justify-between items-center ${idx<3 ? 'bg-indigo-50 border border-indigo-100' : 'bg-white border border-slate-100'} shadow-sm"><span>${idx<3?['🥇','🥈','🥉'][idx]:idx+1+'위'} ${name}</span><span class="text-indigo-600">${count}회 참석</span></div>`;
          });
       }
       if (list.innerHTML === '') list.innerHTML = '<p class="text-center text-slate-400 py-6 text-sm font-medium">기록이 없습니다.</p>';
