@@ -23,9 +23,6 @@
       <button id="btn-view-dash" onclick="window.setView('dashboard')" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-indigo-600 text-white shadow-lg">
         <i data-lucide="bar-chart-3" class="w-5 h-5"></i> 실시간 대시보드
       </button>
-      <button id="btn-view-pres" onclick="window.setView('presentation')" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-gray-800 text-gray-400 hover:bg-gray-700">
-        <i data-lucide="monitor-play" class="w-5 h-5"></i> 무대 발표 모드
-      </button>
       <button id="btn-view-manage" onclick="window.requestManageAccess()" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-gray-800 text-gray-400 hover:bg-gray-700">
         <i data-lucide="settings" class="w-5 h-5"></i> 팀 관리
       </button>
@@ -56,28 +53,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 items-center" id="dash-grids">
           <!-- JS로 각 학년별 현황 렌더링 -->
-        </div>
-      </div>
-
-      <!-- 2. 무대 발표 모드 뷰 -->
-      <div id="view-presentation" class="max-w-6xl w-full mx-auto h-full flex flex-col justify-center hide animate-[fadeIn_0.5s_ease-out]">
-        <div class="flex justify-center gap-4 mb-6 shrink-0" id="pres-tabs">
-          <!-- JS로 발표 학년 탭 렌더링 -->
-        </div>
-
-        <div class="text-center mb-10 shrink-0">
-          <h2 id="pres-title" class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mb-2 drop-shadow-lg">
-            1학년 최종 투표 결과
-          </h2>
-          <p class="text-gray-400 text-xl">과연 영광의 1위는 누가 될까요?</p>
-        </div>
-
-        <div class="space-y-6 flex-1 flex flex-col justify-center" id="pres-bars">
-          <!-- JS로 발표 바 렌더링 -->
-        </div>
-
-        <div class="mt-8 text-center shrink-0" id="pres-actions">
-          <!-- JS로 액션 버튼 렌더링 -->
         </div>
       </div>
 
@@ -216,61 +191,14 @@
     window.setView = (view) => {
       currentView = view;
       document.getElementById('view-dashboard').classList.toggle('hide', view !== 'dashboard');
-      document.getElementById('view-presentation').classList.toggle('hide', view !== 'presentation');
       document.getElementById('view-manage').classList.toggle('hide', view !== 'manage');
       
       const btnDash = document.getElementById('btn-view-dash');
-      const btnPres = document.getElementById('btn-view-pres');
       const btnManage = document.getElementById('btn-view-manage');
       
       btnDash.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'dashboard' ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
-      btnPres.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'presentation' ? "bg-pink-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
       btnManage.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'manage' ? "bg-pink-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
       
-      render();
-    };
-
-    window.setPresentGrade = (grade) => {
-      if (animationTimer) return; // 애니메이션 중 탭 변경 방지
-      presentGrade = grade;
-      if(revealStatus[grade] === 'hidden') animatedVotes = {};
-      render();
-    };
-
-    window.startReveal = () => {
-      const grade = presentGrade;
-      revealStatus[grade] = 'animating';
-      const duration = 3500;
-      const intervalTime = 50;
-      const steps = duration / intervalTime;
-      let currentStep = 0;
-      
-      const teams = getTeamsData()[grade];
-      
-      render(); // UI를 animating 모드로 1차 변경
-
-      animationTimer = setInterval(() => {
-        currentStep++;
-        teams.forEach(team => {
-          animatedVotes[team.id] = Math.floor(Math.random() * (team.votes + 100));
-        });
-        updatePresentationBarsOnly(); // 돔 전체 재렌더링 대신 바 수치만 변경 (성능 최적화)
-        
-        if (currentStep >= steps) {
-          clearInterval(animationTimer);
-          animationTimer = null;
-          revealStatus[grade] = 'revealed';
-          teams.forEach(team => { animatedVotes[team.id] = team.votes; });
-          render(); // 최종 결과 렌더링 (색상 및 트로피 적용)
-        }
-      }, intervalTime);
-    };
-
-    window.resetReveal = () => {
-      if (animationTimer) clearInterval(animationTimer);
-      animationTimer = null;
-      revealStatus[presentGrade] = 'hidden';
-      animatedVotes = {};
       render();
     };
 
@@ -429,8 +357,6 @@
     function render() {
       if (currentView === 'dashboard') {
         renderDashboard();
-      } else if (currentView === 'presentation') {
-        renderPresentation();
       } else if (currentView === 'manage') {
         renderManage();
       }
