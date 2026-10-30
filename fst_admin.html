@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>축제 관리자 대시보드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .hide { display: none !important; }
+    /* 애니메이션용 트랜지션 클래스 추가 */
+    .progress-bar { transition: width 1s ease-out, background-color 1s ease-out; }
+    .animating-bar { transition: width 0.075s linear; } 
+  </style>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center font-sans selection:bg-pink-500/30 p-4 text-white">
+
+  <!-- 16:9 가로 비율 (TV/스크린용) 컨테이너 -->
+  <div class="w-full max-w-[1920px] aspect-video bg-gray-900 flex flex-col relative overflow-hidden shadow-2xl rounded-xl">
+    
+    <!-- 상단 뷰 전환 네비게이션 -->
+    <div class="bg-gray-950/80 backdrop-blur-lg border-b border-gray-800 p-3 flex justify-center gap-4 z-50 shrink-0">
+      <button id="btn-view-dash" onclick="window.setView('dashboard')" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-indigo-600 text-white shadow-lg">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i> 실시간 대시보드
+      </button>
+      <button id="btn-view-pres" onclick="window.setView('presentation')" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-gray-800 text-gray-400 hover:bg-gray-700">
+        <i data-lucide="monitor-play" class="w-5 h-5"></i> 무대 발표 모드
+      </button>
+      <button id="btn-view-manage" onclick="window.requestManageAccess()" class="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all bg-gray-800 text-gray-400 hover:bg-gray-700">
+        <i data-lucide="settings" class="w-5 h-5"></i> 팀 관리
+      </button>
+    </div>
+    
+    <div class="flex-1 p-4 md:p-8 lg:p-10 overflow-hidden flex flex-col relative">
+      
+      <!-- 1. 대시보드 뷰 -->
+      <div id="view-dashboard" class="max-w-7xl w-full mx-auto h-full flex flex-col justify-center animate-[fadeIn_0.5s_ease-out]">
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-gray-800/50 p-6 rounded-3xl border border-gray-700/50 shadow-xl backdrop-blur-md shrink-0">
+          <div>
+            <h1 class="text-3xl font-bold flex items-center gap-3 mb-2">
+              <i data-lucide="presentation" class="text-indigo-400 w-8 h-8"></i> 
+              축제 노래자랑 관리자 센터
+            </h1>
+            <p class="text-gray-400">실시간 투표 현황 및 통계</p>
+          </div>
+          <div class="flex items-center gap-6 bg-gray-900/50 px-6 py-4 rounded-2xl border border-gray-700">
+            <div class="flex items-center gap-3">
+              <i data-lucide="users" class="text-blue-400 w-7 h-7"></i>
+              <div>
+                <p class="text-sm text-gray-400">총 투표수</p>
+                <p id="total-votes" class="text-2xl font-black text-white tabular-nums">0</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 items-center" id="dash-grids">
+          <!-- JS로 각 학년별 현황 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 2. 무대 발표 모드 뷰 -->
+      <div id="view-presentation" class="max-w-6xl w-full mx-auto h-full flex flex-col justify-center hide animate-[fadeIn_0.5s_ease-out]">
+        <div class="flex justify-center gap-4 mb-6 shrink-0" id="pres-tabs">
+          <!-- JS로 발표 학년 탭 렌더링 -->
+        </div>
+
+        <div class="text-center mb-10 shrink-0">
+          <h2 id="pres-title" class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mb-2 drop-shadow-lg">
+            1학년 최종 투표 결과
+          </h2>
+          <p class="text-gray-400 text-xl">과연 영광의 1위는 누가 될까요?</p>
+        </div>
+
+        <div class="space-y-6 flex-1 flex flex-col justify-center" id="pres-bars">
+          <!-- JS로 발표 바 렌더링 -->
+        </div>
+
+        <div class="mt-8 text-center shrink-0" id="pres-actions">
+          <!-- JS로 액션 버튼 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 3. 팀 관리 뷰 -->
+      <div id="view-manage" class="max-w-7xl w-full mx-auto h-full flex flex-col justify-start hide animate-[fadeIn_0.5s_ease-out] overflow-y-auto pb-20">
+        <header class="flex items-center justify-between mb-8 bg-gray-800/50 p-6 rounded-3xl border border-gray-700/50 shadow-xl shrink-0 mt-4">
+          <div>
+            <h1 class="text-3xl font-bold flex items-center gap-3 mb-2">
+              <i data-lucide="settings" class="text-pink-400 w-8 h-8"></i> 
+              참가팀 관리
+            </h1>
+            <p class="text-gray-400">학년별 참가팀을 실시간으로 추가, 수정, 삭제할 수 있습니다.</p>
+          </div>
+        </header>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1" id="manage-grids">
+          <!-- JS로 관리 그리드 렌더링 -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 비밀번호 모달 -->
+  <div id="pwd-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hide opacity-0 transition-opacity duration-300">
+    <div class="bg-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300" id="pwd-modal-content">
+      <h3 class="text-2xl font-bold mb-4 text-white">관리자 인증</h3>
+      <p class="text-gray-400 mb-6">팀 관리 메뉴에 접근하려면<br>비밀번호를 입력해주세요.</p>
+      <input type="password" id="admin-pwd" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-pink-500 transition-colors" placeholder="비밀번호 입력">
+      <p id="pwd-error" class="text-pink-500 text-sm mb-4 hide">비밀번호가 일치하지 않습니다.</p>
+      <div class="flex gap-3">
+        <button onclick="window.closePwdModal()" class="flex-1 py-3 rounded-xl font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors">취소</button>
+        <button onclick="window.verifyPassword()" class="flex-1 py-3 rounded-xl font-bold bg-pink-600 text-white hover:bg-pink-500 transition-colors">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀 추가/수정 모달 -->
+  <div id="team-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hide opacity-0 transition-opacity duration-300">
+    <div class="bg-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4 transform scale-95 transition-transform duration-300" id="team-modal-content">
+      <h3 class="text-2xl font-bold mb-6 text-white" id="team-modal-title">팀 추가</h3>
+      
+      <input type="hidden" id="edit-team-id">
+      <input type="hidden" id="edit-team-grade">
+      
+      <div class="space-y-4 mb-8">
+        <div>
+          <label class="block text-gray-400 text-sm font-bold mb-2">팀/참가자 이름</label>
+          <input type="text" id="edit-team-name" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="예: 1학년 1반">
+        </div>
+        <div>
+          <label class="block text-gray-400 text-sm font-bold mb-2">노래 제목 - 가수</label>
+          <input type="text" id="edit-team-song" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors" placeholder="예: Hype Boy - NewJeans">
+        </div>
+        <p id="team-error" class="text-pink-500 text-sm hide">이름과 노래 제목을 모두 입력해주세요.</p>
+      </div>
+      
+      <div class="flex gap-3">
+        <button onclick="window.closeTeamModal()" class="flex-1 py-3 rounded-xl font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors">취소</button>
+        <button onclick="window.saveTeam()" class="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY8k0s6omcvuJ1gxuGhGdRQ58qx8UHkPc",
+      authDomain: "dm-fst-ctst.firebaseapp.com",
+      projectId: "dm-fst-ctst",
+      storageBucket: "dm-fst-ctst.firebasestorage.app",
+      messagingSenderId: "196762863805",
+      appId: "1:196762863805:web:5c070363226806e03c8fd4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'festival-voting-app';
+
+    const INITIAL_TEAMS_DATA = {
+      1: [
+        { id: '1-1', name: '1학년 1반', song: 'Hype Boy', votes: 142 },
+        { id: '1-2', name: '1학년 3반', song: '사건의 지평선', votes: 89 },
+        { id: '1-3', name: '1학년 연합팀', song: 'Dynamite', votes: 210 },
+      ],
+      2: [
+        { id: '2-1', name: '2학년 2반', song: '한 페이지가 될 수 있게', votes: 156 },
+        { id: '2-2', name: '2학년 5반', song: 'Love Lee', votes: 298 },
+        { id: '2-3', name: '2학년 힙합', song: '거북선', votes: 175 },
+      ],
+      3: [
+        { id: '3-1', name: '3학년 보컬', song: '비의 랩소디', votes: 312 },
+        { id: '3-2', name: '3학년 4반', song: '밤양갱', votes: 245 },
+        { id: '3-3', name: '3학년 선생님', song: '사랑을 했다', votes: 450 },
+      ]
+    };
+
+    // 상태 변수
+    let voteCounts = {};
+    let currentView = 'dashboard'; // 'dashboard' or 'presentation' or 'manage'
+    let presentGrade = 1;
+    let revealStatus = { 1: 'hidden', 2: 'hidden', 3: 'hidden' };
+    let animatedVotes = {};
+    let animationTimer = null;
+    let dynamicTeamsData = INITIAL_TEAMS_DATA;
+    let isAdminAuthenticated = false;
+
+    // --- UI 조작 및 글로벌 함수 ---
+    window.setView = (view) => {
+      currentView = view;
+      document.getElementById('view-dashboard').classList.toggle('hide', view !== 'dashboard');
+      document.getElementById('view-presentation').classList.toggle('hide', view !== 'presentation');
+      document.getElementById('view-manage').classList.toggle('hide', view !== 'manage');
+      
+      const btnDash = document.getElementById('btn-view-dash');
+      const btnPres = document.getElementById('btn-view-pres');
+      const btnManage = document.getElementById('btn-view-manage');
+      
+      btnDash.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'dashboard' ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
+      btnPres.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'presentation' ? "bg-pink-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
+      btnManage.className = "flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all " + (view === 'manage' ? "bg-pink-600 text-white shadow-lg" : "bg-gray-800 text-gray-400 hover:bg-gray-700");
+      
+      render();
+    };
+
+    window.setPresentGrade = (grade) => {
+      if (animationTimer) return; // 애니메이션 중 탭 변경 방지
+      presentGrade = grade;
+      if(revealStatus[grade] === 'hidden') animatedVotes = {};
+      render();
+    };
+
+    window.startReveal = () => {
+      const grade = presentGrade;
+      revealStatus[grade] = 'animating';
+      const duration = 3500;
+      const intervalTime = 50;
+      const steps = duration / intervalTime;
+      let currentStep = 0;
+      
+      const teams = getTeamsData()[grade];
+      
+      render(); // UI를 animating 모드로 1차 변경
+
+      animationTimer = setInterval(() => {
+        currentStep++;
+        teams.forEach(team => {
+          animatedVotes[team.id] = Math.floor(Math.random() * (team.votes + 100));
+        });
+        updatePresentationBarsOnly(); // 돔 전체 재렌더링 대신 바 수치만 변경 (성능 최적화)
+        
+        if (currentStep >= steps) {
+          clearInterval(animationTimer);
+          animationTimer = null;
+          revealStatus[grade] = 'revealed';
+          teams.forEach(team => { animatedVotes[team.id] = team.votes; });
+          render(); // 최종 결과 렌더링 (색상 및 트로피 적용)
+        }
+      }, intervalTime);
+    };
+
+    window.resetReveal = () => {
+      if (animationTimer) clearInterval(animationTimer);
+      animationTimer = null;
+      revealStatus[presentGrade] = 'hidden';
+      animatedVotes = {};
+      render();
+    };
+
+    // --- 팀 관리 기능 ---
+    window.requestManageAccess = () => {
+      if (isAdminAuthenticated) {
+        window.setView('manage');
+      } else {
+        const modal = document.getElementById('pwd-modal');
+        document.getElementById('admin-pwd').value = '';
+        document.getElementById('pwd-error').classList.add('hide');
+        modal.classList.remove('hide');
+        void modal.offsetWidth; // trigger reflow
+        modal.classList.remove('opacity-0');
+        document.getElementById('pwd-modal-content').classList.remove('scale-95');
+      }
+    };
+
+    window.closePwdModal = () => {
+      const modal = document.getElementById('pwd-modal');
+      modal.classList.add('opacity-0');
+      document.getElementById('pwd-modal-content').classList.add('scale-95');
+      setTimeout(() => modal.classList.add('hide'), 300);
+    };
+
+    window.verifyPassword = () => {
+      const pwd = document.getElementById('admin-pwd').value;
+      if (pwd === '8130') {
+        isAdminAuthenticated = true;
+        window.closePwdModal();
+        window.setView('manage');
+      } else {
+        document.getElementById('pwd-error').classList.remove('hide');
+      }
+    };
+
+    window.openTeamModal = (grade, teamId = null) => {
+      const modal = document.getElementById('team-modal');
+      document.getElementById('edit-team-grade').value = grade;
+      document.getElementById('team-error').classList.add('hide');
+      
+      if (teamId) {
+        document.getElementById('team-modal-title').textContent = '팀 수정';
+        const team = dynamicTeamsData[grade].find(t => t.id === teamId);
+        document.getElementById('edit-team-id').value = team.id;
+        document.getElementById('edit-team-name').value = team.name;
+        document.getElementById('edit-team-song').value = team.song;
+      } else {
+        document.getElementById('team-modal-title').textContent = grade + '학년 팀 추가';
+        document.getElementById('edit-team-id').value = '';
+        document.getElementById('edit-team-name').value = '';
+        document.getElementById('edit-team-song').value = '';
+      }
+      
+      modal.classList.remove('hide');
+      void modal.offsetWidth;
+      modal.classList.remove('opacity-0');
+      document.getElementById('team-modal-content').classList.remove('scale-95');
+    };
+
+    window.closeTeamModal = () => {
+      const modal = document.getElementById('team-modal');
+      modal.classList.add('opacity-0');
+      document.getElementById('team-modal-content').classList.add('scale-95');
+      setTimeout(() => modal.classList.add('hide'), 300);
+    };
+
+    window.saveTeam = async () => {
+      const grade = document.getElementById('edit-team-grade').value;
+      const id = document.getElementById('edit-team-id').value;
+      const name = document.getElementById('edit-team-name').value.trim();
+      const song = document.getElementById('edit-team-song').value.trim();
+      
+      if (!name || !song) {
+        document.getElementById('team-error').classList.remove('hide');
+        return;
+      }
+      
+      let updatedTeams = JSON.parse(JSON.stringify(dynamicTeamsData));
+      
+      if (id) {
+        const idx = updatedTeams[grade].findIndex(t => t.id === id);
+        if (idx > -1) {
+          updatedTeams[grade][idx].name = name;
+          updatedTeams[grade][idx].song = song;
+        }
+      } else {
+        const newId = grade + '-' + Date.now();
+        updatedTeams[grade].push({ id: newId, name: name, song: song, votes: 0 });
+      }
+      
+      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
+      await setDoc(teamsRef, { teams: updatedTeams }, { merge: true });
+      window.closeTeamModal();
+    };
+
+    window.deleteTeam = async (grade, teamId) => {
+      let updatedTeams = JSON.parse(JSON.stringify(dynamicTeamsData));
+      updatedTeams[grade] = updatedTeams[grade].filter(t => t.id !== teamId);
+      
+      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
+      await setDoc(teamsRef, { teams: updatedTeams }, { merge: true });
+    };
+
+    // --- 데이터 처리 ---
+    function getTeamsData() {
+      const data = { 1: [], 2: [], 3: [] };
+      [1, 2, 3].forEach(grade => {
+        data[grade] = (dynamicTeamsData[grade] || []).map(team => ({
+          ...team,
+          votes: voteCounts[team.id] !== undefined ? voteCounts[team.id] : (team.votes || 0)
+        }));
+      });
+      return data;
+    }
+
+    function getTotalVotes() {
+      let total = 0;
+      const data = getTeamsData();
+      Object.values(data).forEach(grade => {
+        grade.forEach(team => { total += team.votes; });
+      });
+      return total;
+    }
+
+    // --- 렌더링 함수 ---
+    function render() {
+      if (currentView === 'dashboard') {
+        renderDashboard();
+      } else if (currentView === 'presentation') {
+        renderPresentation();
+      } else if (currentView === 'manage') {
+        renderManage();
+      }
+      lucide.createIcons();
+    }
+
+    function renderManage() {
+      const grids = document.getElementById('manage-grids');
+      const data = getTeamsData();
+
+      grids.innerHTML = [1, 2, 3].map(grade => {
+        const teams = data[grade];
+        
+        const teamRows = teams.map(team => `
+          <div class="flex items-center justify-between bg-gray-900 p-4 rounded-xl border border-gray-700">
+            <div>
+              <p class="font-bold text-gray-200">${team.name}</p>
+              <p class="text-sm text-gray-400"><i data-lucide="music" class="w-3 h-3 inline"></i> ${team.song}</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="window.openTeamModal(${grade}, '${team.id}')" class="p-2 bg-gray-800 text-indigo-400 rounded-lg hover:bg-gray-700 transition-colors">
+                <i data-lucide="edit-2" class="w-4 h-4"></i>
+              </button>
+              <button onclick="window.deleteTeam(${grade}, '${team.id}')" class="p-2 bg-gray-800 text-pink-500 rounded-lg hover:bg-gray-700 transition-colors">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        return `
+          <div class="bg-gray-800/40 rounded-3xl p-6 border border-gray-700/50 backdrop-blur-sm flex flex-col h-full min-h-[350px]">
+            <h2 class="text-xl font-bold mb-4 pb-3 border-b border-gray-700 flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="bg-pink-500/20 text-pink-300 w-8 h-8 rounded-full flex items-center justify-center text-sm">${grade}</span>
+                학년 팀 관리
+              </div>
+            </h2>
+            <div class="space-y-3 flex-1 overflow-y-auto mb-4 pr-2">
+              ${teamRows}
+            </div>
+            <button onclick="window.openTeamModal(${grade})" class="w-full py-3 mt-auto rounded-xl border-2 border-dashed border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-200 transition-colors flex items-center justify-center gap-2 font-bold shrink-0">
+              <i data-lucide="plus" class="w-5 h-5"></i> 팀 추가하기
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderDashboard() {
+      document.getElementById('total-votes').textContent = getTotalVotes().toLocaleString();
+      const grids = document.getElementById('dash-grids');
+      const data = getTeamsData();
+
+      grids.innerHTML = [1, 2, 3].map(grade => {
+        const teams = [...data[grade]].sort((a, b) => b.votes - a.votes);
+        const maxVotes = teams[0].votes || 1;
+
+        const teamRows = teams.map((team, index) => {
+          const isFirst = index === 0;
+          const percentage = (team.votes / maxVotes) * 100;
+          
+          return `
+            <div class="relative">
+              <div class="flex justify-between items-end mb-2">
+                <div class="flex items-center gap-2">
+                  ${isFirst ? '<i data-lucide="trophy" class="text-yellow-400 w-[18px] h-[18px]"></i>' : ''}
+                  <span class="font-bold ${isFirst ? 'text-yellow-400 text-lg' : 'text-gray-200'}">${team.name}</span>
+                </div>
+                <span class="font-black tabular-nums">${team.votes}표</span>
+              </div>
+              <div class="h-3 w-full bg-gray-900 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000 ${isFirst ? 'bg-gradient-to-r from-yellow-500 to-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.5)]' : 'bg-indigo-500'}" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-gray-800/40 rounded-3xl p-6 border border-gray-700/50 backdrop-blur-sm h-full flex flex-col">
+            <h2 class="text-2xl font-bold mb-6 pb-4 border-b border-gray-700 flex items-center gap-2">
+              <span class="bg-indigo-500/20 text-indigo-300 w-8 h-8 rounded-full flex items-center justify-center text-sm">${grade}</span>
+              학년 투표 현황
+            </h2>
+            <div class="space-y-6 flex-1 flex flex-col justify-center">
+              ${teamRows}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderPresentation() {
+      const grade = presentGrade;
+      const status = revealStatus[grade];
+      const teams = getTeamsData()[grade];
+      const sortedByRealVotes = [...teams].sort((a, b) => b.votes - a.votes);
+      const winnerId = sortedByRealVotes[0].id;
+      const maxRealVotes = sortedByRealVotes[0].votes || 1;
+
+      // 탭 업데이트
+      document.getElementById('pres-tabs').innerHTML = [1, 2, 3].map(g => `
+        <button onclick="window.setPresentGrade(${g})" class="px-6 py-2 rounded-full font-bold transition-all ${presentGrade === g ? 'bg-pink-500 text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}">
+          ${g}학년 발표
+        </button>
+      `).join('');
+
+      document.getElementById('pres-title').textContent = `${grade}학년 최종 투표 결과`;
+
+      // 바 업데이트 (ID 부여하여 빠른 DOM 조작 가능하도록 설정)
+      document.getElementById('pres-bars').innerHTML = teams.map(team => {
+        const isWinner = status === 'revealed' && team.id === winnerId;
+        const displayVotes = status === 'hidden' ? 0 : (animatedVotes[team.id] || 0);
+        const percentage = (displayVotes / maxRealVotes) * 100;
+        
+        let barClass = 'progress-bar bg-gray-600/30';
+        if (status === 'animating') barClass = 'animating-bar bg-gray-600/50';
+        else if (isWinner) barClass = 'progress-bar bg-gradient-to-r from-pink-500/80 to-purple-600/80';
+
+        return `
+          <div class="relative bg-gray-800/40 p-6 rounded-2xl border border-gray-700 overflow-hidden">
+            <div id="bar-${team.id}" class="absolute top-0 left-0 h-full ${barClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+            
+            <div class="flex justify-between items-center mb-1 relative z-10">
+              <div>
+                <h3 class="text-3xl font-bold flex items-center gap-3 mb-2 ${isWinner ? 'text-yellow-400 drop-shadow-md' : 'text-white'}">
+                  ${isWinner ? '<i data-lucide="sparkles" class="text-yellow-300 w-7 h-7"></i>' : ''}
+                  ${team.name}
+                  ${isWinner ? '<i data-lucide="sparkles" class="text-yellow-300 w-7 h-7"></i>' : ''}
+                </h3>
+                <p class="text-gray-300 text-lg">${team.song}</p>
+              </div>
+              <div class="text-right">
+                <div class="text-4xl font-black tabular-nums transition-colors duration-500 ${isWinner ? 'text-yellow-400' : 'text-white'}">
+                  <span id="score-${team.id}">${status === 'hidden' ? '?' : displayVotes}</span>
+                  <span class="text-xl text-gray-400 font-normal ml-1">표</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 버튼 액션 업데이트
+      const actions = document.getElementById('pres-actions');
+      if (status === 'hidden') {
+        actions.innerHTML = `
+          <button onclick="window.startReveal()" class="px-16 py-5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-2xl rounded-full shadow-[0_0_40px_rgba(236,72,153,0.5)] hover:shadow-[0_0_60px_rgba(236,72,153,0.7)] transition-all transform hover:scale-110 animate-pulse">
+            결과 확인하기!
+          </button>
+        `;
+      } else {
+        actions.innerHTML = `
+          <button onclick="window.resetReveal()" class="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold rounded-full transition-all mt-2">
+            다시 숨기기 (초기화용)
+          </button>
+        `;
+      }
+    }
+
+    // 애니메이션 중 DOM 직접 업데이트 (빠른 성능을 위해 innerHTML 대신 속성 변경)
+    function updatePresentationBarsOnly() {
+      const grade = presentGrade;
+      const teams = getTeamsData()[grade];
+      const maxRealVotes = [...teams].sort((a, b) => b.votes - a.votes)[0].votes || 1;
+
+      teams.forEach(team => {
+        const displayVotes = animatedVotes[team.id] || 0;
+        const percentage = (displayVotes / maxRealVotes) * 100;
+        
+        const barEl = document.getElementById(`bar-${team.id}`);
+        const scoreEl = document.getElementById(`score-${team.id}`);
+        
+        if (barEl) barEl.style.width = `${Math.min(percentage, 100)}%`;
+        if (scoreEl) scoreEl.textContent = displayVotes;
+      });
+    }
+
+    // --- 앱 초기화 ---
+    async function initApp() {
+      lucide.createIcons();
+      render();
+
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.error("Auth Error", err);
+      }
+
+      const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
+      onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          voteCounts = snap.data();
+          if (currentView === 'dashboard') renderDashboard(); // 대시보드일때만 실시간 즉각 반영
+        } else {
+          // 최초 데이터 세팅
+          const initial = {};
+          Object.values(INITIAL_TEAMS_DATA).flat().forEach(t => { initial[t.id] = t.votes; });
+          setDoc(docRef, initial);
+          voteCounts = initial;
+        }
+      }, (err) => console.error("Snapshot error:", err));
+      
+      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
+      onSnapshot(teamsRef, (snap) => {
+        if (snap.exists()) {
+          dynamicTeamsData = snap.data().teams;
+        } else {
+          setDoc(teamsRef, { teams: INITIAL_TEAMS_DATA });
+          dynamicTeamsData = INITIAL_TEAMS_DATA;
+        }
+        render(); // 팀 변경 시 전체 렌더링
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+
+  </script>
+</body>
+</html>
