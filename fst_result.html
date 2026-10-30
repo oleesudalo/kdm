@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>무대 발표 모드 - 2026 축제 노래자랑</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { background-color: #000; overflow: hidden; }
+    .progress-bar { transition: width 1s ease-out, background-color 1s ease-out; }
+    .animating-bar { transition: width 0.075s linear; } 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center font-sans p-4 text-white">
+
+  <!-- 16:9 가로 비율 (TV/스크린용) 컨테이너 -->
+  <div class="w-full max-w-[1920px] aspect-video bg-gray-950 flex flex-col relative overflow-hidden shadow-2xl rounded-xl border border-gray-800">
+    
+    <div class="flex-1 p-8 md:p-12 lg:p-16 overflow-hidden flex flex-col relative animate-[fadeIn_0.5s_ease-out]">
+      
+      <!-- 상단 학년 선택 탭 (진행자가 마우스로 클릭) -->
+      <div class="flex justify-center gap-4 mb-8 shrink-0 relative z-50" id="pres-tabs">
+        <!-- JS로 발표 학년 탭 렌더링 -->
+      </div>
+
+      <div class="text-center mb-12 shrink-0">
+        <h2 id="pres-title" class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mb-4 drop-shadow-lg tracking-tight">
+          1학년 최종 투표 결과
+        </h2>
+        <p class="text-gray-400 text-2xl">과연 영광의 1위는 누가 될까요?</p>
+      </div>
+
+      <!-- 참가팀 막대 그래프 영역 -->
+      <div class="space-y-8 flex-1 flex flex-col justify-center" id="pres-bars">
+        <!-- JS로 발표 바 렌더링 -->
+      </div>
+
+      <!-- 발표 액션 버튼 -->
+      <div class="mt-12 text-center shrink-0" id="pres-actions">
+        <!-- JS로 액션 버튼 렌더링 -->
+      </div>
+      
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY8k0s6omcvuJ1gxuGhGdRQ58qx8UHkPc",
+      authDomain: "dm-fst-ctst.firebaseapp.com",
+      projectId: "dm-fst-ctst",
+      storageBucket: "dm-fst-ctst.firebasestorage.app",
+      messagingSenderId: "196762863805",
+      appId: "1:196762863805:web:5c070363226806e03c8fd4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'festival-voting-app';
+
+    // 기본 데이터 구조
+    const INITIAL_TEAMS_DATA = { 1: [], 2: [], 3: [] };
+
+    let voteCounts = {};
+    let presentGrade = 1;
+    let revealStatus = { 1: 'hidden', 2: 'hidden', 3: 'hidden' };
+    let animatedVotes = {};
+    let animationTimer = null;
+    let dynamicTeamsData = INITIAL_TEAMS_DATA;
+
+    window.setPresentGrade = (grade) => {
+      if (animationTimer) return;
+      presentGrade = grade;
+      if (revealStatus[grade] === 'hidden') animatedVotes = {};
+      render();
+    };
+
+    window.startReveal = () => {
+      const grade = presentGrade;
+      revealStatus[grade] = 'animating';
+      const duration = 3500;
+      const intervalTime = 50;
+      const steps = duration / intervalTime;
+      let currentStep = 0;
+      
+      const teams = getTeamsData()[grade];
+      render(); 
+
+      animationTimer = setInterval(() => {
+        currentStep++;
+        teams.forEach(team => {
+          animatedVotes[team.id] = Math.floor(Math.random() * (team.votes + 100));
+        });
+        updatePresentationBarsOnly();
+        
+        if (currentStep >= steps) {
+          clearInterval(animationTimer);
+          animationTimer = null;
+          revealStatus[grade] = 'revealed';
+          teams.forEach(team => { animatedVotes[team.id] = team.votes; });
+          render(); 
+        }
+      }, intervalTime);
+    };
+
+    window.resetReveal = () => {
+      if (animationTimer) clearInterval(animationTimer);
+      animationTimer = null;
+      revealStatus[presentGrade] = 'hidden';
+      animatedVotes = {};
+      render();
+    };
+
+    function getTeamsData() {
+      const data = { 1: [], 2: [], 3: [] };
+      [1, 2, 3].forEach(grade => {
+        data[grade] = (dynamicTeamsData[grade] || []).map(team => ({
+          ...team,
+          votes: voteCounts[team.id] !== undefined ? voteCounts[team.id] : (team.votes || 0)
+        }));
+      });
+      return data;
+    }
+
+    function render() {
+      const grade = presentGrade;
+      const status = revealStatus[grade];
+      const teams = getTeamsData()[grade];
+      const sortedByRealVotes = [...teams].sort((a, b) => b.votes - a.votes);
+      const winnerId = sortedByRealVotes.length > 0 ? sortedByRealVotes[0].id : null;
+      const maxRealVotes = sortedByRealVotes.length > 0 ? (sortedByRealVotes[0].votes || 1) : 1;
+
+      document.getElementById('pres-tabs').innerHTML = [1, 2, 3].map(g => `
+        <button onclick="window.setPresentGrade(${g})" class="px-8 py-3 rounded-full font-bold text-lg transition-all ${presentGrade === g ? 'bg-pink-600 text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}">
+          ${g}학년 발표
+        </button>
+      `).join('');
+
+      document.getElementById('pres-title').textContent = `${grade}학년 최종 투표 결과`;
+
+      document.getElementById('pres-bars').innerHTML = teams.map(team => {
+        const isWinner = status === 'revealed' && team.id === winnerId;
+        const displayVotes = status === 'hidden' ? 0 : (animatedVotes[team.id] || 0);
+        const percentage = (displayVotes / maxRealVotes) * 100;
+        
+        let barClass = 'progress-bar bg-gray-700/40';
+        if (status === 'animating') barClass = 'animating-bar bg-gray-600/60';
+        else if (isWinner) barClass = 'progress-bar bg-gradient-to-r from-pink-500 to-purple-600 shadow-[0_0_20px_rgba(236,72,153,0.4)]';
+
+        return `
+          <div class="relative bg-gray-900/60 p-8 rounded-3xl border ${isWinner ? 'border-pink-500' : 'border-gray-700'} overflow-hidden">
+            <div id="bar-${team.id}" class="absolute top-0 left-0 h-full ${barClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+            
+            <div class="flex justify-between items-center mb-1 relative z-10">
+              <div>
+                <h3 class="text-4xl font-bold flex items-center gap-4 mb-3 ${isWinner ? 'text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]' : 'text-white'}">
+                  ${isWinner ? '<i data-lucide="sparkles" class="text-yellow-300 w-10 h-10"></i>' : ''}
+                  ${team.name}
+                  ${isWinner ? '<i data-lucide="sparkles" class="text-yellow-300 w-10 h-10"></i>' : ''}
+                </h3>
+                <p class="text-gray-300 text-2xl ml-1">${team.song}</p>
+              </div>
+              <div class="text-right">
+                <div class="text-6xl font-black tabular-nums transition-colors duration-500 ${isWinner ? 'text-yellow-400' : 'text-white'}">
+                  <span id="score-${team.id}">${status === 'hidden' ? '?' : displayVotes}</span>
+                  <span class="text-3xl text-gray-400 font-normal ml-2">표</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const actions = document.getElementById('pres-actions');
+      if (status === 'hidden') {
+        actions.innerHTML = `
+          <button onclick="window.startReveal()" class="px-20 py-6 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-3xl rounded-full shadow-[0_0_50px_rgba(236,72,153,0.6)] hover:shadow-[0_0_80px_rgba(236,72,153,0.8)] transition-all transform hover:scale-110 animate-pulse">
+            결과 확인하기!
+          </button>
+        `;
+      } else {
+        actions.innerHTML = `
+          <button onclick="window.resetReveal()" class="px-10 py-4 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold text-xl rounded-full transition-all">
+            다시 숨기기
+          </button>
+        `;
+      }
+      lucide.createIcons();
+    }
+
+    function updatePresentationBarsOnly() {
+      const grade = presentGrade;
+      const teams = getTeamsData()[grade];
+      const sortedByRealVotes = [...teams].sort((a, b) => b.votes - a.votes);
+      const maxRealVotes = sortedByRealVotes.length > 0 ? (sortedByRealVotes[0].votes || 1) : 1;
+
+      teams.forEach(team => {
+        const displayVotes = animatedVotes[team.id] || 0;
+        const percentage = (displayVotes / maxRealVotes) * 100;
+        
+        const barEl = document.getElementById(`bar-${team.id}`);
+        const scoreEl = document.getElementById(`score-${team.id}`);
+        
+        if (barEl) barEl.style.width = `${Math.min(percentage, 100)}%`;
+        if (scoreEl) scoreEl.textContent = displayVotes;
+      });
+    }
+
+    async function initApp() {
+      lucide.createIcons();
+      render();
+
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.error("Auth Error", err);
+      }
+
+      const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
+      onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          voteCounts = snap.data();
+          if(revealStatus[presentGrade] === 'revealed') render();
+        }
+      });
+      
+      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
+      onSnapshot(teamsRef, (snap) => {
+        if (snap.exists()) {
+          dynamicTeamsData = snap.data().teams;
+        }
+        render(); 
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
