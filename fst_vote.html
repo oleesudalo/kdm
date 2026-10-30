@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2026 축제 노래자랑</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .hide { display: none !important; }
+  </style>
+</head>
+<body class="bg-slate-950 font-sans selection:bg-pink-500/30 text-white h-screen overflow-hidden relative">
+
+  <!-- 화려한 배경 효과 -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-pink-600/20 blur-[100px]"></div>
+    <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-600/20 blur-[100px]"></div>
+    <div class="absolute -bottom-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-indigo-600/20 blur-[120px]"></div>
+  </div>
+
+  <!-- 메인 앱 컨테이너 -->
+  <div class="relative z-10 mx-auto h-full max-w-md bg-black/20 shadow-2xl backdrop-blur-3xl overflow-hidden flex flex-col">
+    
+    <!-- 1. 홈 화면 (학년 선택) -->
+    <div id="home-view" class="flex flex-col h-full px-6 pt-12 pb-8">
+      <div class="text-center mb-10">
+        <div class="inline-block p-4 bg-white/10 rounded-full mb-4 shadow-lg backdrop-blur-sm">
+          <i data-lucide="mic-2" class="text-pink-400 w-12 h-12"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-purple-400 mb-2">
+          2026 축제 노래자랑
+        </h1>
+        <p class="text-gray-300 text-sm">
+          응원하는 팀에게 소중한 한 표를 행사해주세요!<br/>
+          (각 학년별로 1팀씩 투표 가능합니다)
+        </p>
+      </div>
+
+      <div class="flex-1 flex flex-col gap-4 justify-center w-full mx-auto" id="grade-buttons">
+        <!-- JS로 버튼 렌더링 -->
+      </div>
+    </div>
+
+    <!-- 2. 투표 화면 -->
+    <div id="voting-view" class="flex flex-col h-full hide">
+      <!-- 상단 네비게이션 -->
+      <div class="bg-black/40 backdrop-blur-md sticky top-0 z-10 border-b border-white/10 shrink-0">
+        <div class="flex items-center justify-between p-4 w-full">
+          <button onclick="window.goHome()" class="p-2 -ml-2 rounded-full hover:bg-white/10 text-gray-300 transition-colors">
+            <i data-lucide="home" class="w-6 h-6"></i>
+          </button>
+          
+          <div class="flex bg-white/10 rounded-full p-1" id="nav-tabs">
+            <!-- JS로 탭 렌더링 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 참가팀 리스트 -->
+      <div class="flex-1 overflow-y-auto p-4 pb-24">
+        <div class="w-full space-y-4">
+          <div class="mb-6 flex items-center justify-center gap-2">
+            <i data-lucide="star" class="text-yellow-400 w-5 h-5"></i>
+            <h2 id="voting-title" class="text-xl font-bold text-white text-center"></h2>
+            <i data-lucide="star" class="text-yellow-400 w-5 h-5"></i>
+          </div>
+          <div id="teams-container" class="space-y-4">
+            <!-- JS로 팀 목록 렌더링 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div id="toast" class="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform translate-y-20 opacity-0">
+      <div class="bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-gray-700 flex items-center gap-2 whitespace-nowrap">
+        <i id="toast-icon" data-lucide="check-circle-2" class="text-green-400 w-[18px] h-[18px] hide"></i>
+        <span id="toast-msg" class="text-sm font-medium"></span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY8k0s6omcvuJ1gxuGhGdRQ58qx8UHkPc",
+      authDomain: "dm-fst-ctst.firebaseapp.com",
+      projectId: "dm-fst-ctst",
+      storageBucket: "dm-fst-ctst.firebasestorage.app",
+      messagingSenderId: "196762863805",
+      appId: "1:196762863805:web:5c070363226806e03c8fd4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    // GitHub Pages 등 정적 호스팅에서는 고정된 appId 사용 권장
+    const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'festival-voting-app'; 
+
+    const INITIAL_TEAMS_DATA = {
+      1: [
+        { id: '1-1', name: '1학년 1반', song: 'Hype Boy - NewJeans' },
+        { id: '1-2', name: '1학년 3반', song: '사건의 지평선 - 윤하' },
+        { id: '1-3', name: '1학년 연합팀', song: 'Dynamite - BTS' },
+      ],
+      2: [
+        { id: '2-1', name: '2학년 2반 밴드부', song: '한 페이지가 될 수 있게 - DAY6' },
+        { id: '2-2', name: '2학년 5반', song: 'Love Lee - AKMU' },
+        { id: '2-3', name: '2학년 힙합동아리', song: '거북선 - 자메즈' },
+      ],
+      3: [
+        { id: '3-1', name: '3학년 보컬동아리', song: '비의 랩소디 - 임재현' },
+        { id: '3-2', name: '3학년 4반', song: '밤양갱 - 비비' },
+        { id: '3-3', name: '3학년 선생님 합동', song: '사랑을 했다 - iKON' },
+      ]
+    };
+
+    let currentUser = null;
+    let activeGrade = null;
+    let voted = { 1: null, 2: null, 3: null };
+    let toastTimeout;
+    let dynamicTeamsData = INITIAL_TEAMS_DATA;
+
+    // --- UI 함수 ---
+    function showToast(message, isSuccess = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      const toastIcon = document.getElementById('toast-icon');
+      
+      toastMsg.textContent = message;
+      if (isSuccess) toastIcon.classList.remove('hide');
+      else toastIcon.classList.add('hide');
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2000);
+    }
+
+    // 전역(Window) 객체에 함수 등록 (HTML onclick 에서 사용 가능하게)
+    window.goHome = () => {
+      activeGrade = null;
+      render();
+    };
+
+    window.setGrade = (grade) => {
+      activeGrade = grade;
+      render();
+    };
+
+    window.handleVote = async (grade, teamId) => {
+      if (!currentUser) {
+        showToast('서버 연결 중입니다. 잠시 후 시도해주세요.');
+        return;
+      }
+      if (voted[grade]) {
+        showToast('이미 이 학년에 투표하셨습니다!');
+        return;
+      }
+      
+      try {
+        const privateRef = doc(db, 'artifacts', artifactAppId, 'users', currentUser.uid, 'my_votes', 'history');
+        await setDoc(privateRef, { [grade]: teamId }, { merge: true });
+
+        const publicRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
+        await setDoc(publicRef, { [teamId]: increment(1) }, { merge: true });
+        
+        showToast('투표가 완료되었습니다! 🎉', true);
+      } catch (error) {
+        console.error(error);
+        showToast('투표 중 오류가 발생했습니다.');
+      }
+    };
+
+    // --- 렌더링 함수 ---
+    function render() {
+      const homeView = document.getElementById('home-view');
+      const votingView = document.getElementById('voting-view');
+
+      if (activeGrade === null) {
+        homeView.classList.remove('hide');
+        votingView.classList.add('hide');
+        renderHome();
+      } else {
+        homeView.classList.add('hide');
+        votingView.classList.remove('hide');
+        renderVoting();
+      }
+      lucide.createIcons(); // 아이콘 새로고침
+    }
+
+    function renderHome() {
+      const container = document.getElementById('grade-buttons');
+      container.innerHTML = [1, 2, 3].map(grade => `
+        <button onclick="window.setGrade(${grade})" class="group relative flex items-center justify-between p-6 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl border border-white/10 transition-all duration-300 transform active:scale-95 overflow-hidden w-full">
+          <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-pink-500 to-purple-500 opacity-80"></div>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center font-bold text-xl text-pink-300">${grade}</div>
+            <div class="text-left">
+              <h2 class="text-xl font-bold text-white">${grade}학년 무대</h2>
+              <p class="text-sm text-gray-400">총 3팀 참가</p>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="text-gray-400 group-hover:text-white transition-colors"></i>
+        </button>
+      `).join('');
+    }
+
+    function renderVoting() {
+      // 제목 및 탭 업데이트
+      document.getElementById('voting-title').textContent = `${activeGrade}학년 참가팀`;
+      
+      const navTabs = document.getElementById('nav-tabs');
+      navTabs.innerHTML = [1, 2, 3].map(grade => `
+        <button onclick="window.setGrade(${grade})" class="px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+          activeGrade === grade 
+            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md' 
+            : 'text-gray-400 hover:text-white'
+        }">${grade}학년</button>
+      `).join('');
+
+      // 팀 리스트 렌더링
+      const container = document.getElementById('teams-container');
+      const teams = dynamicTeamsData[activeGrade] || [];
+      
+      container.innerHTML = teams.map(team => {
+        const isVotedForThisTeam = voted[activeGrade] === team.id;
+        const isVotedForOtherTeam = voted[activeGrade] !== null && voted[activeGrade] !== team.id;
+        
+        let btnClass = 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg';
+        let btnText = '투표하기';
+        let btnDisabled = '';
+        let cardClass = 'bg-white/5 border-white/10';
+
+        if (isVotedForThisTeam) {
+          btnClass = 'bg-white/20 text-white cursor-default';
+          btnText = '투표 완료';
+          btnDisabled = 'disabled';
+          cardClass = 'bg-gradient-to-br from-pink-900/40 to-purple-900/40 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)]';
+        } else if (isVotedForOtherTeam) {
+          btnClass = 'bg-gray-800 text-gray-500 cursor-not-allowed';
+          btnText = '다른 팀에 투표함';
+          btnDisabled = 'disabled';
+        }
+
+        return `
+          <div class="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 ${cardClass}">
+            ${isVotedForThisTeam ? `<div class="absolute top-0 right-0 p-3"><i data-lucide="check-circle-2" class="text-pink-400 w-6 h-6"></i></div>` : ''}
+            
+            <h3 class="text-lg font-bold text-white mb-1 pr-8">${team.name}</h3>
+            <div class="flex items-center gap-2 text-pink-300 text-sm mb-4">
+              <i data-lucide="music" class="w-[14px] h-[14px]"></i>
+              <span>${team.song}</span>
+            </div>
+            
+            <button onclick="window.handleVote(${activeGrade}, '${team.id}')" ${btnDisabled}
+              class="w-full py-3 rounded-xl font-bold text-sm transition-all transform active:scale-95 ${btnClass}">
+              ${btnText}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- 초기화 및 Firebase 연동 ---
+    async function initApp() {
+      // 아이콘 최초 적용
+      lucide.createIcons();
+      render();
+
+      try {
+        // 인증 처리 (환경변수 무시하고 익명 로그인만 사용)
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.error("Auth Error", err);
+      }
+
+      onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+        if (user) {
+          // 내 투표 기록 구독
+          const docRef = doc(db, 'artifacts', artifactAppId, 'users', user.uid, 'my_votes', 'history');
+          onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
+              voted = Object.assign(voted, snap.data());
+              if (activeGrade !== null) render(); // 화면 업데이트
+            }
+          }, (err) => console.error("History error:", err));
+        }
+      });
+      
+      // 실시간 팀 데이터 구독 추가
+      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
+      onSnapshot(teamsRef, (snap) => {
+        if (snap.exists()) {
+          dynamicTeamsData = snap.data().teams;
+        } else {
+          setDoc(teamsRef, { teams: INITIAL_TEAMS_DATA });
+        }
+        if (activeGrade !== null) render();
+      }, (err) => console.error("Teams error:", err));
+    }
+
+    // 앱 실행
+    window.addEventListener('DOMContentLoaded', initApp);
+
+  </script>
+</body>
+</html>
