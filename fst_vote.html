@@ -129,6 +129,8 @@
     let toastTimeout;
     let dynamicTeamsData = INITIAL_TEAMS_DATA;
     let votingStatus = { 1: false, 2: false, 3: false }; // 투표 진행 상태 변수 추가
+    let currentSessionId = 'default'; // 투표 세션 ID (초기화 감지용)
+    let userVoteUnsubscribe = null;
 
     // --- UI 함수 ---
     function showToast(message, isSuccess = false) {
@@ -174,7 +176,7 @@
       }
       
       try {
-        const privateRef = doc(db, 'artifacts', artifactAppId, 'users', currentUser.uid, 'my_votes', 'history');
+        const privateRef = doc(db, 'artifacts', artifactAppId, 'users', currentUser.uid, 'my_votes', `history_${currentSessionId}`);
         await setDoc(privateRef, { [grade]: teamId }, { merge: true });
 
         const publicRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
@@ -294,6 +296,22 @@
       container.innerHTML = htmlString;
     }
 
+    // --- 학생 투표 기록 구독 ---
+    function setupUserVotesListener() {
+      if (!currentUser) return;
+      if (userVoteUnsubscribe) userVoteUnsubscribe(); // 기존 구독 취소
+      
+      const docRef = doc(db, 'artifacts', artifactAppId, 'users', currentUser.uid, 'my_votes', `history_${currentSessionId}`);
+      userVoteUnsubscribe = onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          voted = { 1: null, 2: null, 3: null, ...snap.data() };
+        } else {
+          voted = { 1: null, 2: null, 3: null }; // 세션이 바뀌어 문서가 없으면 잠금 해제(초기화)
+        }
+        if (activeGrade !== null) render();
+      }, (err) => console.error("History error:", err));
+    }
+
     // --- 초기화 및 Firebase 연동 ---
     async function initApp() {
       // 아이콘 최초 적용
@@ -310,14 +328,7 @@
       onAuthStateChanged(auth, (user) => {
         currentUser = user;
         if (user) {
-          // 내 투표 기록 구독
-          const docRef = doc(db, 'artifacts', artifactAppId, 'users', user.uid, 'my_votes', 'history');
-          onSnapshot(docRef, (snap) => {
-            if (snap.exists()) {
-              voted = Object.assign(voted, snap.data());
-              if (activeGrade !== null) render(); // 화면 업데이트
-            }
-          }, (err) => console.error("History error:", err));
+          setupUserVotesListener();
         }
       });
       
@@ -336,7 +347,16 @@
       const statusRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'voting_status', 'grades');
       onSnapshot(statusRef, (snap) => {
         if (snap.exists()) {
-          votingStatus = snap.data();
+          const data = snap.data();
+          votingStatus = data;
+          
+          // 세션 ID가 변경되었는지 확인 (전체 초기화 감지)
+          const newSessionId = data.sessionId || 'default';
+          if (currentSessionId !== newSessionId) {
+            currentSessionId = newSessionId;
+            setupUserVotesListener(); // 새로운 세션 ID로 투표 기록 다시 불러오기 (초기화됨)
+          }
+
           if (activeGrade !== null) render(); // 화면 즉시 업데이트
         }
       });
