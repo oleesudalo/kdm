@@ -354,7 +354,8 @@
           const newSessionId = data.sessionId || 'default';
           if (currentSessionId !== newSessionId) {
             currentSessionId = newSessionId;
-            setupUserVotesListener(); // 새로운 세션 ID로 투표 기록 다시 불러오기 (초기화됨)
+            voted = { 1: null, 2: null, 3: null }; // 즉시 로컬 투표 기록 완벽 초기화 (강제 잠금 해제)
+            setupUserVotesListener(); // 새로운 세션 ID로 투표 기록 다시 불러오기
           }
 
           if (activeGrade !== null) render(); // 화면 즉시 업데이트
