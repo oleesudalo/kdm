@@ -228,9 +228,9 @@
       const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
       await setDoc(docRef, resetData); // 파이어베이스 데이터베이스 덮어쓰기 (초기화)
       
-      // 초기화 시 모든 투표도 마감 상태로 변경
+      // 초기화 시 모든 투표도 마감 상태로 변경 & 새로운 세션 발급(학생 투표기록 초기화)
       const statusRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'voting_status', 'grades');
-      await setDoc(statusRef, { 1: false, 2: false, 3: false });
+      await setDoc(statusRef, { 1: false, 2: false, 3: false, sessionId: Date.now() });
 
       window.closeResetModal();
       lucide.createIcons();
@@ -595,7 +595,7 @@
         if (snap.exists()) {
           votingStatus = snap.data();
         } else {
-          setDoc(statusRef, { 1: false, 2: false, 3: false });
+          setDoc(statusRef, { 1: false, 2: false, 3: false, sessionId: 'default' });
           votingStatus = { 1: false, 2: false, 3: false };
         }
         if (currentView === 'dashboard') renderDashboard();
