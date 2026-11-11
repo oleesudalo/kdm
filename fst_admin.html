@@ -188,7 +188,7 @@
     // --- 렌더링 함수 ---
     function render() {
       renderDashboard();
-      lucide.createIcons();
+      // 기존에 여기 있던 lucide.createIcons(); 는 아래로 이동합니다.
     }
 
     function renderDashboard() {
@@ -240,6 +240,9 @@
           </div>
         `;
       }).join('');
+
+      // 화면을 다시 그릴 때마다 항상 아이콘을 다시 생성하도록 끝에 추가합니다!
+      lucide.createIcons();
     }
 
     // --- 앱 초기화 ---
