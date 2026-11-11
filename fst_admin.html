@@ -207,11 +207,13 @@
           return `
             <div class="relative">
               <div class="flex justify-between items-end mb-2">
-                <div class="flex items-center gap-2">
-                  ${isFirst ? '<i data-lucide="trophy" class="text-yellow-400 w-[18px] h-[18px]"></i>' : ''}
-                  <span class="font-bold ${isFirst ? 'text-yellow-400 text-lg' : 'text-gray-200'}">${team.name}</span>
+                <div class="flex items-center gap-2 truncate pr-4">
+                  ${isFirst ? '<i data-lucide="trophy" class="text-yellow-400 w-[18px] h-[18px] shrink-0"></i>' : ''}
+                  <span class="font-bold truncate ${isFirst ? 'text-yellow-400 text-lg' : 'text-gray-200'}">
+                    ${team.name} <span class="text-sm font-normal ${isFirst ? 'text-yellow-200/80' : 'text-gray-400'} ml-1">- ${team.song}</span>
+                  </span>
                 </div>
-                <span class="font-black tabular-nums">${team.votes}표</span>
+                <span class="font-black tabular-nums shrink-0">${team.votes}표</span>
               </div>
               <div class="h-3 w-full bg-gray-900 rounded-full overflow-hidden">
                 <div class="h-full rounded-full transition-all duration-1000 ${isFirst ? 'bg-gradient-to-r from-yellow-500 to-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.5)]' : 'bg-indigo-500'}" style="width: ${percentage}%"></div>
