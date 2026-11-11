@@ -127,7 +127,8 @@
     let activeGrade = null;
     let voted = { 1: null, 2: null, 3: null };
     let toastTimeout;
-    let dynamicTeamsData = INITIAL_TEAMS_DATA;
+    
+    // dynamicTeamsData 변수 삭제
     let votingStatus = { 1: false, 2: false, 3: false }; // 투표 진행 상태 변수 추가
     let currentSessionId = 'default'; // 투표 세션 ID (초기화 감지용)
     let userVoteUnsubscribe = null;
@@ -236,9 +237,9 @@
         }">${grade}학년</button>
       `).join('');
 
-      // 팀 리스트 렌더링
+      // 팀 리스트 렌더링 (무조건 고정된 INITIAL_TEAMS_DATA만 사용하도록 변경)
       const container = document.getElementById('teams-container');
-      const teams = dynamicTeamsData[activeGrade] || [];
+      const teams = INITIAL_TEAMS_DATA[activeGrade] || [];
       const isVotingActive = votingStatus[activeGrade];
       
       let htmlString = `
@@ -332,18 +333,7 @@
         }
       });
       
-      // 실시간 팀 데이터 구독 추가
-      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
-      onSnapshot(teamsRef, (snap) => {
-        if (snap.exists()) {
-          dynamicTeamsData = snap.data().teams;
-        } else {
-          // [수정됨] DB에 아직 팀 정보가 없을 경우, 덮어쓰기(setDoc) 하지 않고 화면에만 기본값 표시
-          // setDoc(teamsRef, { teams: INITIAL_TEAMS_DATA }); <- 이 부분을 삭제하여 학생들이 DB를 덮어쓰지 못하게 막음
-          dynamicTeamsData = INITIAL_TEAMS_DATA;
-        }
-        if (activeGrade !== null) render();
-      }, (err) => console.error("Teams error:", err));
+      // ===== 옛날 팀 데이터를 불러오던 onSnapshot(teamsRef) 코드를 완전히 삭제했습니다! =====
 
       // 투표 진행 상태 구독 추가
       const statusRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'voting_status', 'grades');
