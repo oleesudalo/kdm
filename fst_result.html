@@ -73,8 +73,7 @@
     const db = getFirestore(app);
     const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'festival-voting-app';
 
-    // 빈 배열 대신 초기 데이터를 넣어두어 화면에 아무것도 안 뜨는 현상 방지
-    // 학년/반 표시를 빼고 팀명과 곡명으로만 이루어진 임시 데이터로 변경
+    // 팀명과 곡명을 고정(하드코딩)
     const INITIAL_TEAMS_DATA = {
       1: [
         { id: '1-1', name: '이무진', song: '청춘만화' },
@@ -98,7 +97,6 @@
     let revealStatus = { 1: 'hidden', 2: 'hidden', 3: 'hidden' };
     let animatedVotes = {};
     let animationTimer = null;
-    let dynamicTeamsData = INITIAL_TEAMS_DATA;
 
     window.setPresentGrade = (grade) => {
       if (animationTimer) return;
@@ -146,9 +144,10 @@
     function getTeamsData() {
       const data = { 1: [], 2: [], 3: [] };
       [1, 2, 3].forEach(grade => {
-        data[grade] = (dynamicTeamsData[grade] || []).map(team => ({
+        // 하드코딩된 고정 데이터만 렌더링하도록 변경
+        data[grade] = INITIAL_TEAMS_DATA[grade].map(team => ({
           ...team,
-          votes: voteCounts[team.id] !== undefined ? voteCounts[team.id] : (team.votes || 0)
+          votes: voteCounts[team.id] !== undefined ? voteCounts[team.id] : 0
         }));
       });
       return data;
@@ -257,17 +256,7 @@
           if(revealStatus[presentGrade] === 'revealed') render();
         }
       });
-      
-      const teamsRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'teams_info', 'all');
-      onSnapshot(teamsRef, (snap) => {
-        if (snap.exists()) {
-          dynamicTeamsData = snap.data().teams;
-        } else {
-          // DB에 아직 팀 정보가 없을 경우 화면이 깨지지 않도록 초기 데이터 렌더링
-          dynamicTeamsData = INITIAL_TEAMS_DATA;
-        }
-        render(); 
-      });
+      // 팀 이름 실시간 구독(onSnapshot) 로직은 삭제됨
     }
 
     window.addEventListener('DOMContentLoaded', initApp);
