@@ -180,8 +180,9 @@
         const privateRef = doc(db, 'artifacts', artifactAppId, 'users', currentUser.uid, 'my_votes', `history_${currentSessionId}`);
         await setDoc(privateRef, { [grade]: teamId }, { merge: true });
 
-        const publicRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
-        await setDoc(publicRef, { [teamId]: increment(1) }, { merge: true });
+        // 수정된 부분: 투표 데이터가 엉뚱한 곳에 쌓이지 않도록 9개로 분산된 개별 팀 문서에 정확히 기록합니다.
+        const publicRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', teamId);
+        await setDoc(publicRef, { votes: increment(1) }, { merge: true });
         
         showToast('투표가 완료되었습니다! 🎉', true);
       } catch (error) {
