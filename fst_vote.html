@@ -11,9 +11,11 @@
   <style>
     body { -webkit-tap-highlight-color: transparent; }
     .hide { display: none !important; }
+    /* 스마트폰 상단 노치(카메라) 안전 영역 확보용 CSS 추가 */
+    .safe-top { padding-top: env(safe-area-inset-top, 0px); }
   </style>
 </head>
-<body class="bg-slate-950 font-sans selection:bg-pink-500/30 text-white h-screen overflow-hidden relative">
+<body class="bg-slate-950 font-sans selection:bg-pink-500/30 text-white h-[100dvh] overflow-hidden relative">
 
   <!-- 화려한 배경 효과 -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -26,7 +28,7 @@
   <div class="relative z-10 mx-auto h-full max-w-md bg-black/20 shadow-2xl backdrop-blur-3xl overflow-hidden flex flex-col">
     
     <!-- 1. 홈 화면 (학년 선택) -->
-    <div id="home-view" class="flex flex-col h-full px-6 pt-12 pb-8">
+    <div id="home-view" class="flex flex-col h-full px-6 pt-12 pb-8 safe-top">
       <div class="text-center mb-10">
         <div class="inline-block p-4 bg-white/10 rounded-full mb-4 shadow-lg backdrop-blur-sm">
           <i data-lucide="mic-2" class="text-pink-400 w-12 h-12"></i>
@@ -47,8 +49,8 @@
 
     <!-- 2. 투표 화면 -->
     <div id="voting-view" class="flex flex-col h-full hide">
-      <!-- 상단 네비게이션 -->
-      <div class="bg-black/40 backdrop-blur-md sticky top-0 z-10 border-b border-white/10 shrink-0">
+      <!-- 상단 네비게이션 (safe-top 클래스 추가) -->
+      <div class="bg-black/40 backdrop-blur-md sticky top-0 z-10 border-b border-white/10 shrink-0 safe-top">
         <div class="flex items-center justify-between p-4 w-full">
           <button onclick="window.goHome()" class="p-2 -ml-2 rounded-full hover:bg-white/10 text-gray-300 transition-colors">
             <i data-lucide="home" class="w-6 h-6"></i>
