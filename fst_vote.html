@@ -338,7 +338,9 @@
         if (snap.exists()) {
           dynamicTeamsData = snap.data().teams;
         } else {
-          setDoc(teamsRef, { teams: INITIAL_TEAMS_DATA });
+          // [수정됨] DB에 아직 팀 정보가 없을 경우, 덮어쓰기(setDoc) 하지 않고 화면에만 기본값 표시
+          // setDoc(teamsRef, { teams: INITIAL_TEAMS_DATA }); <- 이 부분을 삭제하여 학생들이 DB를 덮어쓰지 못하게 막음
+          dynamicTeamsData = INITIAL_TEAMS_DATA;
         }
         if (activeGrade !== null) render();
       }, (err) => console.error("Teams error:", err));
