@@ -57,7 +57,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    // 변경된 부분: collection을 추가로 불러옵니다.
+    import { getFirestore, doc, onSnapshot, setDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAY8k0s6omcvuJ1gxuGhGdRQ58qx8UHkPc",
@@ -249,10 +250,13 @@
         console.error("Auth Error", err);
       }
 
-      const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
-      onSnapshot(docRef, (snap) => {
-        if (snap.exists()) {
-          voteCounts = snap.data();
+      // 변경된 부분: 9개로 쪼개진 팀별 투표함 컬렉션 읽어오기
+      const colRef = collection(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results');
+      onSnapshot(colRef, (snap) => {
+        if (!snap.empty) {
+          snap.docs.forEach(doc => {
+            voteCounts[doc.id] = doc.data().votes || 0;
+          });
           if(revealStatus[presentGrade] === 'revealed') render();
         }
       });
