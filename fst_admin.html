@@ -83,7 +83,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    // 변경된 부분: collection과 writeBatch를 추가로 불러옵니다.
+    import { getFirestore, doc, setDoc, onSnapshot, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAY8k0s6omcvuJ1gxuGhGdRQ58qx8UHkPc",
@@ -112,9 +113,9 @@
         { id: '2-3', name: '이찬원', song: '진또배기', votes: 0 },
       ],
       3: [
-        { id: '3-1', name: '더 크로스', song: '당신을 위하여', votes: 0 },
-        { id: '3-2', name: '소찬휘', song: 'Tears', votes: 0 },
-        { id: '3-3', name: '아이유', song: '아이와 나의 바다', votes: 0 },
+        { id: '3-1', name: '이민재(3-5)', song: '당신을 위하여 - 더 크로스', votes: 0 },
+        { id: '3-2', name: '정다솜(3-3), 유진희(3-5)', song: 'Tears - 소찬휘', votes: 0 },
+        { id: '3-3', name: '하은수(3-7)', song: '아이와 나의 바다 - 아이유', votes: 0 },
       ]
     };
 
@@ -139,13 +140,13 @@
     };
 
     window.executeResetVotes = async () => {
-      const resetData = {};
-      // 고정된 팀의 투표수를 0으로 설정
+      // 변경된 부분: 분산된 투표함(9개)을 모두 0으로 초기화 (writeBatch 사용)
+      const batch = writeBatch(db);
       Object.values(INITIAL_TEAMS_DATA).flat().forEach(t => {
-        resetData[t.id] = 0;
+        const teamRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', t.id);
+        batch.set(teamRef, { votes: 0 });
       });
-      const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
-      await setDoc(docRef, resetData); 
+      await batch.commit(); 
       
       const newSessionId = "session_" + Date.now();
       const statusRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'voting_status', 'grades');
@@ -250,17 +251,23 @@
         console.error("Auth Error", err);
       }
 
-      const docRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', 'all_teams');
-      onSnapshot(docRef, (snap) => {
-        if (snap.exists()) {
-          voteCounts = snap.data();
+      // 변경된 부분: 9개로 쪼개진 팀별 투표함을 실시간으로 긁어모음
+      const colRef = collection(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results');
+      onSnapshot(colRef, (snap) => {
+        if (!snap.empty) {
+          snap.docs.forEach(doc => {
+            voteCounts[doc.id] = doc.data().votes || 0;
+          });
           renderDashboard(); // 대시보드 실시간 즉각 반영
         } else {
-          // 최초 데이터 세팅
-          const initial = {};
-          Object.values(INITIAL_TEAMS_DATA).flat().forEach(t => { initial[t.id] = t.votes; });
-          setDoc(docRef, initial);
-          voteCounts = initial;
+          // 최초 데이터 세팅 (9개로 분산)
+          const batch = writeBatch(db);
+          Object.values(INITIAL_TEAMS_DATA).flat().forEach(t => { 
+            const teamRef = doc(db, 'artifacts', artifactAppId, 'public', 'data', 'vote_results', t.id);
+            batch.set(teamRef, { votes: 0 });
+            voteCounts[t.id] = 0;
+          });
+          batch.commit();
         }
       }, (err) => console.error("Snapshot error:", err));
       
